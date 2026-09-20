@@ -10,21 +10,23 @@
   <style>
     :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; color: #f7f7f8; touch-action: none; }
-    body { padding: max(6px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto 1fr auto auto; gap: 0; }
-    header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 36px; align-items: center; padding: 0 12px; border-bottom: 1px solid #30343c; }
+    html { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; }
+    body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #0c0d10; color: #f7f7f8; touch-action: none; padding: max(8px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 0; }
+    header { display: flex; min-height: 36px; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid #30343c; }
     h1 { font-size: 17px; margin: 0; letter-spacing: -.3px; }
-    #screenToggle { justify-self: center; min-height: 28px; max-width: 150px; padding: 0 9px; border: 0; background: transparent; color: #aab1bd; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #status { color: #ffb84d; font-size: 12px; }
     #status.online { color: #63df91; }
-    #pad { position: relative; min-height: 220px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 40%, #20232a, #15171c 70%); overflow: hidden; }
-    #pad::after { content: "Touch to position pointer\A Two fingers to scroll"; white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
+    #pad { position: relative; min-height: 120px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 40%, #20232a, #15171c 70%); overflow: hidden; }
+    #pad::after { white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
+    #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers to scroll"; }
+    #pad[data-mode="relative"]::after { content: "Drag to move pointer\A Two fingers to scroll"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
     .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid #63df91; border-radius: 50%; background: #63df913d; color: #b7ffcd; box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
     .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-left: 1px solid #30343c; }
     .row button { border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; }
     button { min-height: 50px; border: 1px solid #30343c; border-radius: 0; background: #1c1f25; color: #f5f5f6; font: inherit; font-size: 16px; font-weight: 600; }
     button:active { background: #343944; transform: scale(.98); }
+    button:disabled { opacity: .38; background: #15171c; }
     button.confirmed { animation: button-confirmed 360ms ease-out; }
     .media button { min-height: 50px; font-size: 18px; }
     .labels button { font-size: 13px; font-weight: 550; }
@@ -46,12 +48,18 @@
     @keyframes pad-confirmed { 0%, 100% { box-shadow: none; } 35% { box-shadow: inset 0 0 0 2px #72a9ff, inset 0 0 28px #4e91ff1f; } }
     @keyframes button-confirmed { 0%, 100% { background: #1c1f25; border-color: #30343c; } 35% { background: #294330; border-color: #63df91; box-shadow: 0 0 0 3px #63df9124; } }
     @media (prefers-reduced-motion: reduce) { .tapRipple, #pad.confirmed, button.confirmed { animation-duration: 80ms; } }
-    @media (max-height: 600px) { #pad { min-height: 160px; } button { min-height: 42px; } }
+    @media (max-height: 600px) {
+      body { padding-top: max(4px, env(safe-area-inset-top)); }
+      header { min-height: 30px; }
+      #pad { min-height: 72px; }
+      button, .media button { min-height: 38px; }
+      input, #send { height: 42px; min-height: 42px; }
+    }
   </style>
 </head>
 <body>
-  <header><h1>Mously</h1><button id="screenToggle">Screen</button><span id="status">Connecting…</span></header>
-  <main id="pad" aria-label="Trackpad"></main>
+  <header><h1>Mously</h1><span id="status">Connecting…</span></header>
+  <main id="pad" data-mode="absolute" aria-label="Trackpad"></main>
   <section class="row media" aria-label="Media controls">
     <button data-media="play_pause" aria-label="Play or pause">▶︎❚❚</button>
     <button data-media="volume_down" aria-label="Volume down">−</button>
@@ -59,8 +67,11 @@
     <button data-media="mute" aria-label="Mute">⌁</button>
   </section>
   <section class="row labels">
+    <button data-click="left">Left click</button>
     <button data-click="right">Right click</button>
     <button data-click="left" data-count="2">Double click</button>
+    <button id="modeToggle">Absolute</button>
+    <button id="screenToggle">Screen</button>
     <button id="appsToggle">Apps</button>
     <button id="keyboardToggle">Keyboard</button>
     <button data-key="fullscreen">Fullscreen</button>
@@ -78,6 +89,13 @@
     <div class="dialogHeader"><h2>Map to screen</h2><button id="screensClose" aria-label="Close">×</button></div>
     <div id="screenList" class="selectionList"><div class="empty">Loading screens…</div></div>
   </dialog>
+  <dialog id="modeDialog">
+    <div class="dialogHeader"><h2>Pointer mode</h2><button id="modeClose" aria-label="Close">×</button></div>
+    <div id="modeList" class="selectionList">
+      <button data-mode-choice="absolute">Absolute · phone matches screen</button>
+      <button data-mode-choice="relative">Relative · drag like a trackpad</button>
+    </div>
+  </dialog>
   <script>
     const pad = document.querySelector('#pad');
     const status = document.querySelector('#status');
@@ -88,8 +106,12 @@
     const screensDialog = document.querySelector('#screensDialog');
     const screenList = document.querySelector('#screenList');
     const screenToggle = document.querySelector('#screenToggle');
+    const modeDialog = document.querySelector('#modeDialog');
+    const modeToggle = document.querySelector('#modeToggle');
+    const modeChoices = document.querySelectorAll('[data-mode-choice]');
     let socket, reconnectTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
+    let inputMode = localStorage.getItem('mouslyPointerMode') === 'relative' ? 'relative' : 'absolute';
 
     function connect() {
       socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
@@ -138,10 +160,21 @@
     }
     function normalizedPoint(event) {
       const bounds = pad.getBoundingClientRect();
+      const edge = 0.04;
+      const expandEdge = value => Math.max(0, Math.min(1, (value - edge) / (1 - edge * 2)));
       return {
-        x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
-        y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),
+        x: expandEdge((event.clientX - bounds.left) / bounds.width),
+        y: expandEdge((event.clientY - bounds.top) / bounds.height),
       };
+    }
+    function setInputMode(mode) {
+      inputMode = mode === 'relative' ? 'relative' : 'absolute';
+      localStorage.setItem('mouslyPointerMode', inputMode);
+      pad.dataset.mode = inputMode;
+      modeToggle.textContent = inputMode === 'absolute' ? 'Absolute' : 'Relative';
+      modeToggle.title = inputMode === 'absolute' ? 'Phone position matches the selected screen' : 'Drag like a conventional trackpad';
+      screenToggle.disabled = inputMode !== 'absolute';
+      modeChoices.forEach(button => button.classList.toggle('active', button.dataset.modeChoice === inputMode));
     }
 
     pad.addEventListener('pointerdown', e => {
@@ -149,7 +182,7 @@
       touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
       if (touches.size === 1) { startTime = performance.now(); totalMove = 0; maxTouches = 1; }
       maxTouches = Math.max(maxTouches, touches.size);
-      if (touches.size === 1) send('point', normalizedPoint(e));
+      if (touches.size === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
     });
     pad.addEventListener('pointermove', e => {
       if (!touches.has(e.pointerId)) return;
@@ -159,7 +192,8 @@
       const dx = after.x - before.x, dy = after.y - before.y;
       totalMove += Math.abs(dx) + Math.abs(dy);
       if (touches.size > 1) send('scroll', {dx, dy});
-      else if (maxTouches === 1) send('point', normalizedPoint(e));
+      else if (maxTouches === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
+      else if (maxTouches === 1) send('move', {dx, dy});
     });
     function endPointer(e) {
       const count = touches.size;
@@ -215,7 +249,6 @@
     function renderDisplays(displays) {
       screenList.replaceChildren();
       const selected = displays.find(display => display.selected);
-      screenToggle.textContent = selected ? selected.name : 'Screen';
       screenToggle.title = selected ? `Mapped to ${selected.name}` : 'Choose mapped screen';
       if (!displays.length) { screenList.innerHTML = '<div class="empty">No screens found</div>'; return; }
       for (const display of displays) {
@@ -227,9 +260,18 @@
         screenList.append(button);
       }
     }
+    modeToggle.onclick = () => modeDialog.showModal();
+    document.querySelector('#modeClose').onclick = () => modeDialog.close();
+    modeDialog.addEventListener('click', e => { if (e.target === modeDialog) modeDialog.close(); });
+    modeChoices.forEach(button => button.onclick = () => {
+      haptic();
+      setInputMode(button.dataset.modeChoice);
+      modeDialog.close();
+    });
     function sendText() { if (text.value) { send('text', {text: text.value}); text.value = ''; } }
     document.querySelector('#send').onclick = sendText;
     text.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendText(); send('key', {key: 'enter'}); } });
+    setInputMode(inputMode);
     connect();
   </script>
 </body>
