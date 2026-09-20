@@ -1,6 +1,39 @@
 from mously import macos
 
 
+def test_largest_external_display_is_preferred():
+    displays = [
+        {"display_id": 1, "width": 1512, "height": 982, "builtin": True},
+        {"display_id": 2, "width": 1920, "height": 1080, "builtin": False},
+    ]
+    assert macos.MacController._choose_largest_display(displays) == 2
+
+
+def test_absolute_point_maps_to_selected_display(monkeypatch):
+    posted = []
+    bounds = macos.Quartz.CGRectMake(100, -900, 1920, 1080)
+
+    controller = macos.MacController.__new__(macos.MacController)
+    controller._selected_display_id = 7
+    controller._position = None
+    monkeypatch.setattr(controller, "displays", lambda: [{"display_id": 7, "selected": True}])
+    monkeypatch.setattr(macos.Quartz, "CGDisplayBounds", lambda _display_id: bounds)
+    monkeypatch.setattr(
+        macos.Quartz,
+        "CGEventCreateMouseEvent",
+        lambda _source, _type, point, _button: point,
+    )
+    monkeypatch.setattr(macos.Quartz, "CGEventPost", lambda _tap, event: posted.append(event))
+
+    controller.point(0.0, 1.0)
+    assert posted[-1].x == 100
+    assert posted[-1].y == 179
+
+    controller.point(1.0, 0.0)
+    assert posted[-1].x == 2019
+    assert posted[-1].y == -900
+
+
 def test_double_click_posts_two_clicks_with_native_click_states(monkeypatch):
     events = []
     posted = []

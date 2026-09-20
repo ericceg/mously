@@ -12,12 +12,13 @@
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; color: #f7f7f8; touch-action: none; }
     body { padding: max(6px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto 1fr auto auto; gap: 0; }
-    header { display: flex; min-height: 36px; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid #30343c; }
+    header { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; min-height: 36px; align-items: center; padding: 0 12px; border-bottom: 1px solid #30343c; }
     h1 { font-size: 17px; margin: 0; letter-spacing: -.3px; }
+    #screenToggle { justify-self: center; min-height: 28px; max-width: 150px; padding: 0 9px; border: 0; background: transparent; color: #aab1bd; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #status { color: #ffb84d; font-size: 12px; }
     #status.online { color: #63df91; }
     #pad { position: relative; min-height: 220px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 40%, #20232a, #15171c 70%); overflow: hidden; }
-    #pad::after { content: "Move · tap to click\A Two fingers to scroll"; white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
+    #pad::after { content: "Touch to position pointer\A Two fingers to scroll"; white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
     .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid #63df91; border-radius: 50%; background: #63df913d; color: #b7ffcd; box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
     .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-left: 1px solid #30343c; }
@@ -37,11 +38,10 @@
     .dialogHeader { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 0 12px 12px; }
     .dialogHeader h2 { margin: 0; font-size: 18px; }
     .dialogHeader button { width: 40px; min-height: 40px; border-radius: 0; }
-    #appList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; overflow-y: auto; max-height: calc(78vh - 64px); border-left: 1px solid #30343c; border-bottom: 1px solid #30343c; }
-    #appList button { position: relative; min-height: 58px; padding: 8px 24px 8px 12px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-    #appList button { border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; }
-    #appList button.active::after { content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #63df91; transform: translateY(-50%); }
-    #appList .empty { grid-column: 1 / -1; color: #858b96; text-align: center; padding: 24px; }
+    .selectionList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; overflow-y: auto; max-height: calc(78vh - 64px); border-left: 1px solid #30343c; border-bottom: 1px solid #30343c; }
+    .selectionList button { position: relative; min-height: 58px; padding: 8px 24px 8px 12px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; }
+    .selectionList button.active::after { content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #63df91; transform: translateY(-50%); }
+    .selectionList .empty { grid-column: 1 / -1; color: #858b96; text-align: center; padding: 24px; }
     @keyframes tap-ripple { from { opacity: .95; transform: scale(.3); } to { opacity: 0; transform: scale(1.45); } }
     @keyframes pad-confirmed { 0%, 100% { box-shadow: none; } 35% { box-shadow: inset 0 0 0 2px #72a9ff, inset 0 0 28px #4e91ff1f; } }
     @keyframes button-confirmed { 0%, 100% { background: #1c1f25; border-color: #30343c; } 35% { background: #294330; border-color: #63df91; box-shadow: 0 0 0 3px #63df9124; } }
@@ -50,7 +50,7 @@
   </style>
 </head>
 <body>
-  <header><h1>Mously</h1><span id="status">Connecting…</span></header>
+  <header><h1>Mously</h1><button id="screenToggle">Screen</button><span id="status">Connecting…</span></header>
   <main id="pad" aria-label="Trackpad"></main>
   <section class="row media" aria-label="Media controls">
     <button data-media="play_pause" aria-label="Play or pause">▶︎❚❚</button>
@@ -72,7 +72,11 @@
   </section>
   <dialog id="appsDialog">
     <div class="dialogHeader"><h2>Switch app</h2><button id="appsClose" aria-label="Close">×</button></div>
-    <div id="appList"><div class="empty">Loading open apps…</div></div>
+    <div id="appList" class="selectionList"><div class="empty">Loading open apps…</div></div>
+  </dialog>
+  <dialog id="screensDialog">
+    <div class="dialogHeader"><h2>Map to screen</h2><button id="screensClose" aria-label="Close">×</button></div>
+    <div id="screenList" class="selectionList"><div class="empty">Loading screens…</div></div>
   </dialog>
   <script>
     const pad = document.querySelector('#pad');
@@ -81,16 +85,24 @@
     const text = document.querySelector('#text');
     const appsDialog = document.querySelector('#appsDialog');
     const appList = document.querySelector('#appList');
+    const screensDialog = document.querySelector('#screensDialog');
+    const screenList = document.querySelector('#screenList');
+    const screenToggle = document.querySelector('#screenToggle');
     let socket, reconnectTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
 
     function connect() {
       socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
-      socket.onopen = () => { status.textContent = 'Connected'; status.className = 'online'; };
+      socket.onopen = () => { status.textContent = 'Connected'; status.className = 'online'; send('list_displays'); };
       socket.onmessage = event => {
         const message = JSON.parse(event.data);
         if (message.type === 'apps') renderApps(message.apps);
         if (message.type === 'activated' && message.ok) appsDialog.close();
+        if (message.type === 'displays') renderDisplays(message.displays);
+        if (message.type === 'display_selected') {
+          renderDisplays(message.displays);
+          if (message.ok) screensDialog.close();
+        }
       };
       socket.onclose = () => { status.textContent = 'Reconnecting…'; status.className = ''; reconnectTimer = setTimeout(connect, 1000); };
       socket.onerror = () => socket.close();
@@ -124,12 +136,20 @@
       const list = [...points.values()];
       return { x: list.reduce((n, p) => n + p.x, 0) / list.length, y: list.reduce((n, p) => n + p.y, 0) / list.length };
     }
+    function normalizedPoint(event) {
+      const bounds = pad.getBoundingClientRect();
+      return {
+        x: Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width)),
+        y: Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height)),
+      };
+    }
 
     pad.addEventListener('pointerdown', e => {
       pad.setPointerCapture(e.pointerId);
       touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
       if (touches.size === 1) { startTime = performance.now(); totalMove = 0; maxTouches = 1; }
       maxTouches = Math.max(maxTouches, touches.size);
+      if (touches.size === 1) send('point', normalizedPoint(e));
     });
     pad.addEventListener('pointermove', e => {
       if (!touches.has(e.pointerId)) return;
@@ -138,7 +158,8 @@
       const after = midpoint(touches);
       const dx = after.x - before.x, dy = after.y - before.y;
       totalMove += Math.abs(dx) + Math.abs(dy);
-      send(touches.size > 1 ? 'scroll' : 'move', {dx, dy});
+      if (touches.size > 1) send('scroll', {dx, dy});
+      else if (maxTouches === 1) send('point', normalizedPoint(e));
     });
     function endPointer(e) {
       const count = touches.size;
@@ -182,6 +203,28 @@
         button.setAttribute('aria-label', `${app.name}${app.active ? ', current app' : ''}`);
         button.onclick = () => { haptic(); send('activate_app', {pid: app.pid}); };
         appList.append(button);
+      }
+    }
+    screenToggle.onclick = () => {
+      screenList.innerHTML = '<div class="empty">Loading screens…</div>';
+      screensDialog.showModal();
+      send('list_displays');
+    };
+    document.querySelector('#screensClose').onclick = () => screensDialog.close();
+    screensDialog.addEventListener('click', e => { if (e.target === screensDialog) screensDialog.close(); });
+    function renderDisplays(displays) {
+      screenList.replaceChildren();
+      const selected = displays.find(display => display.selected);
+      screenToggle.textContent = selected ? selected.name : 'Screen';
+      screenToggle.title = selected ? `Mapped to ${selected.name}` : 'Choose mapped screen';
+      if (!displays.length) { screenList.innerHTML = '<div class="empty">No screens found</div>'; return; }
+      for (const display of displays) {
+        const button = document.createElement('button');
+        button.textContent = `${display.name} · ${display.width}×${display.height}`;
+        button.className = display.selected ? 'active' : '';
+        button.setAttribute('aria-label', `${display.name}, ${display.width} by ${display.height}${display.selected ? ', selected' : ''}`);
+        button.onclick = () => { haptic(); send('select_display', {display_id: display.display_id}); };
+        screenList.append(button);
       }
     }
     function sendText() { if (text.value) { send('text', {text: text.value}); text.value = ''; } }

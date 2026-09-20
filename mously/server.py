@@ -47,6 +47,11 @@ def create_app(controller: MacController) -> web.Application:
                 elif command.action == "activate_app":
                     activated = controller.activate_application(command.payload["pid"])
                     await ws.send_json({"type": "activated", "ok": activated})
+                elif command.action == "list_displays":
+                    await ws.send_json({"type": "displays", "displays": controller.displays()})
+                elif command.action == "select_display":
+                    selected = controller.select_display(command.payload["display_id"])
+                    await ws.send_json({"type": "display_selected", "ok": selected, "displays": controller.displays()})
                 else:
                     dispatch(controller, command.action, command.payload)
             except (json.JSONDecodeError, ProtocolError, KeyError) as exc:
@@ -61,6 +66,8 @@ def create_app(controller: MacController) -> web.Application:
 def dispatch(controller: MacController, action: str, payload: dict) -> None:
     if action == "move":
         controller.move(payload["dx"], payload["dy"])
+    elif action == "point":
+        controller.point(payload["x"], payload["y"])
     elif action == "scroll":
         controller.scroll(payload["dx"], payload["dy"])
     elif action == "click":
