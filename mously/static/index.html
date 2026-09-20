@@ -156,7 +156,7 @@
     const volume = document.querySelector('#volume');
     const volumeControl = document.querySelector('.volumeControl');
     const volumeValue = document.querySelector('#volumeValue');
-    let socket, reconnectTimer;
+    let socket, reconnectTimer, volumeSyncTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
     let threeFingerGesture = null;
     let inputMode = localStorage.getItem('mouslyPointerMode') === 'relative' ? 'relative' : 'absolute';
@@ -166,19 +166,31 @@
 
     function connect() {
       socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
-      socket.onopen = () => { status.textContent = 'Connected'; status.className = 'online'; send('list_displays'); send('get_volume'); };
+      socket.onopen = () => {
+        status.textContent = 'Connected';
+        status.className = 'online';
+        send('list_displays');
+        send('get_volume');
+        clearInterval(volumeSyncTimer);
+        volumeSyncTimer = setInterval(() => send('get_volume'), 500);
+      };
       socket.onmessage = event => {
         const message = JSON.parse(event.data);
         if (message.type === 'apps') renderApps(message.apps);
         if (message.type === 'activated' && message.ok) appsDialog.close();
         if (message.type === 'displays') renderDisplays(message.displays);
-        if (message.type === 'volume') setVolumeDisplay(message.value * 100);
+        if (message.type === 'volume' && !volumeAdjusting) setVolumeDisplay(message.value * 100);
         if (message.type === 'display_selected') {
           renderDisplays(message.displays);
           if (message.ok) screensDialog.close();
         }
       };
-      socket.onclose = () => { status.textContent = 'Reconnecting…'; status.className = ''; reconnectTimer = setTimeout(connect, 1000); };
+      socket.onclose = () => {
+        status.textContent = 'Reconnecting…';
+        status.className = '';
+        clearInterval(volumeSyncTimer);
+        reconnectTimer = setTimeout(connect, 1000);
+      };
       socket.onerror = () => socket.close();
     }
     function send(action, payload = {}) {
@@ -276,8 +288,9 @@
       volume.setAttribute('aria-valuetext', `${rounded} percent`);
       volumeValue.style.top = `clamp(8px, calc(${100 - rounded}% - 13px), calc(100% - 34px))`;
     }
-    let volumeFrame = null;
+    let volumeFrame = null, volumeAdjusting = false;
     volume.addEventListener('input', () => {
+      volumeAdjusting = true;
       setVolumeDisplay(Number(volume.value));
       volumeControl.classList.add('adjusting');
       if (volumeFrame === null) volumeFrame = requestAnimationFrame(() => {
@@ -287,9 +300,16 @@
     });
     volume.addEventListener('change', () => {
       send('set_volume', {value: Number(volume.value) / 100});
+      setTimeout(() => {
+        volumeAdjusting = false;
+        send('get_volume');
+      }, 120);
       setTimeout(() => volumeControl.classList.remove('adjusting'), 450);
     });
-    volume.addEventListener('pointerdown', () => volumeControl.classList.add('adjusting'));
+    volume.addEventListener('pointerdown', () => {
+      volumeAdjusting = true;
+      volumeControl.classList.add('adjusting');
+    });
 
     pad.addEventListener('pointerdown', e => {
       pad.setPointerCapture(e.pointerId);
@@ -345,7 +365,11 @@
       if (button) confirmControl(button);
     });
 
-    document.querySelectorAll('[data-media]').forEach(b => b.onclick = () => { haptic(); send('media', {key: b.dataset.media}); });
+    document.querySelectorAll('[data-media]').forEach(b => b.onclick = () => {
+      haptic();
+      send('media', {key: b.dataset.media});
+      if (b.dataset.media !== 'play_pause') setTimeout(() => send('get_volume'), 120);
+    });
     document.querySelectorAll('[data-key]').forEach(b => b.onclick = () => { haptic(); send('key', {key: b.dataset.key}); });
     document.querySelectorAll('[data-click]').forEach(b => b.onclick = () => { haptic(); send('click', {button: b.dataset.click, count: Number(b.dataset.count || 1)}); });
     document.querySelector('#keyboardToggle').onclick = () => { keyboard.classList.toggle('open'); if (keyboard.classList.contains('open')) text.focus(); };
