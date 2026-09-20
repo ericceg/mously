@@ -45,7 +45,7 @@ class MacController:
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
         self._position = point
 
-    def click(self, button: str) -> None:
+    def click(self, button: str, count: int = 1) -> None:
         position = self._current_position()
         if button == "right":
             mouse_button = Quartz.kCGMouseButtonRight
@@ -53,9 +53,13 @@ class MacController:
         else:
             mouse_button = Quartz.kCGMouseButtonLeft
             down_type, up_type = Quartz.kCGEventLeftMouseDown, Quartz.kCGEventLeftMouseUp
-        for event_type in (down_type, up_type):
-            event = Quartz.CGEventCreateMouseEvent(None, event_type, position, mouse_button)
-            Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
+        for click_number in range(1, count + 1):
+            for event_type in (down_type, up_type):
+                event = Quartz.CGEventCreateMouseEvent(None, event_type, position, mouse_button)
+                Quartz.CGEventSetIntegerValueField(event, Quartz.kCGMouseEventClickState, click_number)
+                Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
+            if click_number < count:
+                time.sleep(0.06)
 
     def scroll(self, dx: float, dy: float) -> None:
         # Pixel scrolling keeps two-finger movement smooth. Negation mirrors a

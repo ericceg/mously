@@ -64,7 +64,7 @@ def dispatch(controller: MacController, action: str, payload: dict) -> None:
     elif action == "scroll":
         controller.scroll(payload["dx"], payload["dy"])
     elif action == "click":
-        controller.click(payload["button"])
+        controller.click(payload["button"], payload["count"])
     elif action == "key":
         controller.key(payload["key"])
     elif action == "text":

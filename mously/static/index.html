@@ -51,11 +51,11 @@
   </section>
   <section class="row labels">
     <button data-click="right">Right click</button>
+    <button data-click="left" data-count="2">Double click</button>
     <button id="appsToggle">Apps</button>
     <button id="keyboardToggle">Keyboard</button>
     <button data-key="fullscreen">Fullscreen</button>
     <button data-key="escape">Esc</button>
-    <button data-key="enter">Enter</button>
   </section>
   <section id="keyboard">
     <input id="text" autocomplete="off" autocorrect="on" placeholder="Type on the Mac…">
@@ -89,6 +89,9 @@
     function send(action, payload = {}) {
       if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({action, ...payload}));
     }
+    function haptic() {
+      if ('vibrate' in navigator) navigator.vibrate(12);
+    }
     function midpoint(points) {
       const list = [...points.values()];
       return { x: list.reduce((n, p) => n + p.x, 0) / list.length, y: list.reduce((n, p) => n + p.y, 0) / list.length };
@@ -112,7 +115,10 @@
     function endPointer(e) {
       const count = touches.size;
       touches.delete(e.pointerId);
-      if (count === 1 && maxTouches === 1 && performance.now() - startTime < 260 && totalMove < 12) send('click', {button: 'left'});
+      if (count === 1 && maxTouches === 1 && performance.now() - startTime < 260 && totalMove < 12) {
+        haptic();
+        send('click', {button: 'left'});
+      }
       if (touches.size === 0) maxTouches = 0;
     }
     pad.addEventListener('pointerup', endPointer);
@@ -122,9 +128,9 @@
     });
     pad.addEventListener('contextmenu', e => e.preventDefault());
 
-    document.querySelectorAll('[data-media]').forEach(b => b.onclick = () => send('media', {key: b.dataset.media}));
-    document.querySelectorAll('[data-key]').forEach(b => b.onclick = () => send('key', {key: b.dataset.key}));
-    document.querySelectorAll('[data-click]').forEach(b => b.onclick = () => send('click', {button: b.dataset.click}));
+    document.querySelectorAll('[data-media]').forEach(b => b.onclick = () => { haptic(); send('media', {key: b.dataset.media}); });
+    document.querySelectorAll('[data-key]').forEach(b => b.onclick = () => { haptic(); send('key', {key: b.dataset.key}); });
+    document.querySelectorAll('[data-click]').forEach(b => b.onclick = () => { haptic(); send('click', {button: b.dataset.click, count: Number(b.dataset.count || 1)}); });
     document.querySelector('#keyboardToggle').onclick = () => { keyboard.classList.toggle('open'); if (keyboard.classList.contains('open')) text.focus(); };
     document.querySelector('#appsToggle').onclick = () => {
       appList.innerHTML = '<div class="empty">Loading open apps…</div>';
@@ -141,7 +147,7 @@
         button.textContent = app.name;
         button.className = app.active ? 'active' : '';
         button.setAttribute('aria-label', `${app.name}${app.active ? ', current app' : ''}`);
-        button.onclick = () => send('activate_app', {pid: app.pid});
+        button.onclick = () => { haptic(); send('activate_app', {pid: app.pid}); };
         appList.append(button);
       }
     }

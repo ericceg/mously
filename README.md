@@ -26,10 +26,15 @@ Use `uv run mously --port 9000` to choose another port.
 
 - Drag one finger to move; tap to left-click.
 - Drag two fingers to scroll; use the dedicated button to right-click.
+- **Double click** sends a native macOS double-click at the current pointer position.
 - Media buttons control play/pause, volume, and mute.
 - **Apps** shows the Mac's currently open apps; tap one to bring it to the front.
 - Fullscreen sends `Control-Command-F`, the standard macOS fullscreen shortcut.
 - Keyboard opens a text field; **Send** types its contents into the focused Mac app.
+
+Mously requests a short vibration for taps and buttons on browsers that implement
+the web Vibration API. iPhone Safari currently does not expose that API, so iOS
+uses the visual pressed state only.
 
 Mously listens on the local network without authentication. Use it only on a
 network you trust, and stop the process when you are finished.

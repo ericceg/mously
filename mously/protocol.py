@@ -42,8 +42,13 @@ def parse_command(message: Any) -> Command:
     if action in {"move", "scroll"}:
         payload["dx"] = _bounded_number(payload.get("dx"), "dx")
         payload["dy"] = _bounded_number(payload.get("dy"), "dy")
-    elif action == "click" and payload.get("button") not in ALLOWED_CLICKS:
-        raise ProtocolError("invalid click button")
+    elif action == "click":
+        if payload.get("button") not in ALLOWED_CLICKS:
+            raise ProtocolError("invalid click button")
+        count = payload.get("count", 1)
+        if not isinstance(count, int) or isinstance(count, bool) or count not in {1, 2}:
+            raise ProtocolError("click count must be 1 or 2")
+        payload["count"] = count
     elif action == "key" and payload.get("key") not in ALLOWED_KEYS:
         raise ProtocolError("invalid key")
     elif action == "media" and payload.get("key") not in ALLOWED_MEDIA:
