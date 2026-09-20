@@ -28,7 +28,11 @@ def create_app(controller: MacController) -> web.Application:
     index = files("mously.static").joinpath("index.html")
 
     async def home(_: web.Request) -> web.Response:
-        return web.Response(text=index.read_text(encoding="utf-8"), content_type="text/html")
+        return web.Response(
+            text=index.read_text(encoding="utf-8"),
+            content_type="text/html",
+            headers={"Cache-Control": "no-store"},
+        )
 
     async def websocket(request: web.Request) -> web.WebSocketResponse:
         ws = web.WebSocketResponse(heartbeat=20, max_msg_size=16_384)
