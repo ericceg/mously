@@ -38,7 +38,13 @@ def create_app(controller: MacController) -> web.Application:
                 continue
             try:
                 command = parse_command(json.loads(message.data))
-                dispatch(controller, command.action, command.payload)
+                if command.action == "list_apps":
+                    await ws.send_json({"type": "apps", "apps": controller.applications()})
+                elif command.action == "activate_app":
+                    activated = controller.activate_application(command.payload["pid"])
+                    await ws.send_json({"type": "activated", "ok": activated})
+                else:
+                    dispatch(controller, command.action, command.payload)
             except (json.JSONDecodeError, ProtocolError, KeyError) as exc:
                 await ws.send_json({"ok": False, "error": str(exc)})
         return ws
@@ -80,4 +86,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

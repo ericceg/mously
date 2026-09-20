@@ -21,6 +21,8 @@ ALLOWED_ACTIONS = {
     "key",
     "text",
     "media",
+    "list_apps",
+    "activate_app",
 }
 
 ALLOWED_CLICKS = {"left", "right"}
@@ -50,6 +52,10 @@ def parse_command(message: Any) -> Command:
         value = payload.get("text")
         if not isinstance(value, str) or len(value) > 2_000:
             raise ProtocolError("text must be a string of at most 2000 characters")
+    elif action == "activate_app":
+        pid = payload.get("pid")
+        if not isinstance(pid, int) or isinstance(pid, bool) or not 0 < pid < 2**31:
+            raise ProtocolError("pid must be a positive integer")
 
     return Command(action, payload)
 
@@ -58,4 +64,3 @@ def _bounded_number(value: Any, name: str) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ProtocolError(f"{name} must be a number")
     return max(-500.0, min(500.0, float(value)))
-

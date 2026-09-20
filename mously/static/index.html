@@ -23,10 +23,20 @@
     button:active { background: #343944; transform: scale(.98); }
     .media button { min-height: 44px; font-size: 18px; }
     .labels button { font-size: 13px; font-weight: 550; }
+    .labels { grid-auto-flow: row; grid-template-columns: repeat(3, 1fr); }
     #keyboard { display: none; grid-template-columns: 1fr auto; gap: 8px; }
     #keyboard.open { display: grid; }
     input { min-width: 0; height: 46px; border: 1px solid #3b404a; border-radius: 13px; padding: 0 13px; background: #17191e; color: white; font-size: 16px; outline: none; }
     #send { min-height: 46px; padding: 0 18px; color: #89b4ff; }
+    dialog { width: min(94vw, 430px); max-height: 72vh; margin: auto auto max(12px, env(safe-area-inset-bottom)); border: 1px solid #383c45; border-radius: 22px; padding: 14px; background: #14161b; color: #f7f7f8; box-shadow: 0 20px 80px #000a; }
+    dialog::backdrop { background: #0009; backdrop-filter: blur(3px); }
+    .dialogHeader { display: flex; align-items: center; justify-content: space-between; margin: 0 2px 12px; }
+    .dialogHeader h2 { margin: 0; font-size: 18px; }
+    .dialogHeader button { width: 38px; min-height: 38px; border-radius: 50%; }
+    #appList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; overflow-y: auto; max-height: calc(72vh - 72px); }
+    #appList button { position: relative; min-height: 58px; padding: 8px 24px 8px 12px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+    #appList button.active::after { content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #63df91; transform: translateY(-50%); }
+    #appList .empty { grid-column: 1 / -1; color: #858b96; text-align: center; padding: 24px; }
     @media (max-height: 600px) { body { gap: 7px; } #pad { min-height: 160px; } button { min-height: 42px; } }
   </style>
 </head>
@@ -41,25 +51,38 @@
   </section>
   <section class="row labels">
     <button data-click="right">Right click</button>
+    <button id="appsToggle">Apps</button>
+    <button id="keyboardToggle">Keyboard</button>
     <button data-key="fullscreen">Fullscreen</button>
     <button data-key="escape">Esc</button>
-    <button id="keyboardToggle">Keyboard</button>
+    <button data-key="enter">Enter</button>
   </section>
   <section id="keyboard">
     <input id="text" autocomplete="off" autocorrect="on" placeholder="Type on the Mac…">
     <button id="send">Send</button>
   </section>
+  <dialog id="appsDialog">
+    <div class="dialogHeader"><h2>Switch app</h2><button id="appsClose" aria-label="Close">×</button></div>
+    <div id="appList"><div class="empty">Loading open apps…</div></div>
+  </dialog>
   <script>
     const pad = document.querySelector('#pad');
     const status = document.querySelector('#status');
     const keyboard = document.querySelector('#keyboard');
     const text = document.querySelector('#text');
+    const appsDialog = document.querySelector('#appsDialog');
+    const appList = document.querySelector('#appList');
     let socket, reconnectTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
 
     function connect() {
       socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
       socket.onopen = () => { status.textContent = 'Connected'; status.className = 'online'; };
+      socket.onmessage = event => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'apps') renderApps(message.apps);
+        if (message.type === 'activated' && message.ok) appsDialog.close();
+      };
       socket.onclose = () => { status.textContent = 'Reconnecting…'; status.className = ''; reconnectTimer = setTimeout(connect, 1000); };
       socket.onerror = () => socket.close();
     }
@@ -101,6 +124,25 @@
     document.querySelectorAll('[data-key]').forEach(b => b.onclick = () => send('key', {key: b.dataset.key}));
     document.querySelectorAll('[data-click]').forEach(b => b.onclick = () => send('click', {button: b.dataset.click}));
     document.querySelector('#keyboardToggle').onclick = () => { keyboard.classList.toggle('open'); if (keyboard.classList.contains('open')) text.focus(); };
+    document.querySelector('#appsToggle').onclick = () => {
+      appList.innerHTML = '<div class="empty">Loading open apps…</div>';
+      appsDialog.showModal();
+      send('list_apps');
+    };
+    document.querySelector('#appsClose').onclick = () => appsDialog.close();
+    appsDialog.addEventListener('click', e => { if (e.target === appsDialog) appsDialog.close(); });
+    function renderApps(apps) {
+      appList.replaceChildren();
+      if (!apps.length) { appList.innerHTML = '<div class="empty">No open apps found</div>'; return; }
+      for (const app of apps) {
+        const button = document.createElement('button');
+        button.textContent = app.name;
+        button.className = app.active ? 'active' : '';
+        button.setAttribute('aria-label', `${app.name}${app.active ? ', current app' : ''}`);
+        button.onclick = () => send('activate_app', {pid: app.pid});
+        appList.append(button);
+      }
+    }
     function sendText() { if (text.value) { send('text', {text: text.value}); text.value = ''; } }
     document.querySelector('#send').onclick = sendText;
     text.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendText(); send('key', {key: 'enter'}); } });

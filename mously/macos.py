@@ -106,6 +106,28 @@ class MacController:
             )
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, event.CGEvent())
 
+    def applications(self) -> list[dict[str, object]]:
+        workspace = AppKit.NSWorkspace.sharedWorkspace()
+        frontmost = workspace.frontmostApplication()
+        frontmost_pid = frontmost.processIdentifier() if frontmost else None
+        applications = []
+        for application in workspace.runningApplications():
+            if application.activationPolicy() != AppKit.NSApplicationActivationPolicyRegular:
+                continue
+            name = application.localizedName()
+            if not name:
+                continue
+            pid = int(application.processIdentifier())
+            applications.append({"name": str(name), "pid": pid, "active": pid == frontmost_pid})
+        return sorted(applications, key=lambda app: (not app["active"], str(app["name"]).casefold()))
+
+    @staticmethod
+    def activate_application(pid: int) -> bool:
+        application = AppKit.NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
+        if application is None or application.activationPolicy() != AppKit.NSApplicationActivationPolicyRegular:
+            return False
+        return bool(application.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps))
+
     @staticmethod
     def _key_combo(key_code: int, flags: int = 0) -> None:
         for is_down in (True, False):
