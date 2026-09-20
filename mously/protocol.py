@@ -22,6 +22,8 @@ ALLOWED_ACTIONS = {
     "key",
     "text",
     "media",
+    "set_volume",
+    "get_volume",
     "magnify",
     "list_apps",
     "activate_app",
@@ -61,6 +63,8 @@ def parse_command(message: Any) -> Command:
         raise ProtocolError("invalid key")
     elif action == "media" and payload.get("key") not in ALLOWED_MEDIA:
         raise ProtocolError("invalid media key")
+    elif action == "set_volume":
+        payload["value"] = _normalized_number(payload.get("value"), "value")
     elif action == "magnify":
         if payload.get("phase") not in ALLOWED_MAGNIFY_PHASES:
             raise ProtocolError("invalid magnify phase")

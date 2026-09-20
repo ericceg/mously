@@ -16,13 +16,20 @@
     h1 { font-size: 17px; margin: 0; letter-spacing: -.3px; }
     #status { color: #ffb84d; font-size: 12px; }
     #status.online { color: #63df91; }
-    #pad { position: relative; min-height: 120px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 40%, #20232a, #15171c 70%); overflow: hidden; }
+    #controlSurface { display: grid; grid-template-columns: minmax(0, 1fr) 46px; min-height: 120px; overflow: hidden; }
+    #pad { position: relative; min-width: 0; min-height: 120px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 40%, #20232a, #15171c 70%); overflow: hidden; }
     #pad::after { white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
     #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers scroll and pan"; }
     #pad[data-mode="relative"]::after { content: "Drag to move pointer\A Two fingers scroll and pan"; }
     #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers pan · three fingers pinch"; }
     #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "Drag to move pointer\A Two fingers pan · three fingers pinch"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
+    .volumeControl { position: relative; display: grid; place-items: center; border-left: 1px solid #30343c; background: #17191e; }
+    #volume { width: 100%; height: calc(100% - 24px); min-height: 88px; margin: 12px 0; writing-mode: vertical-lr; direction: rtl; accent-color: #72a9ff; cursor: ns-resize; touch-action: none; }
+    #volume::-webkit-slider-runnable-track { width: 5px; border-radius: 3px; background: #343944; }
+    #volume::-webkit-slider-thumb { width: 24px; height: 24px; margin-left: -9.5px; border: 2px solid #b9d3ff; border-radius: 50%; background: #72a9ff; box-shadow: 0 1px 5px #0009; }
+    #volumeValue { position: absolute; right: 43px; z-index: 4; min-width: 42px; padding: 5px 6px; border-radius: 6px; background: #0a0b0ee8; color: #dbe9ff; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; opacity: 0; transform: translateX(4px); transition: opacity 120ms, transform 120ms; }
+    .volumeControl.adjusting #volumeValue { opacity: 1; transform: translateX(0); }
     .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid #63df91; border-radius: 50%; background: #63df913d; color: #b7ffcd; box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
     .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-left: 1px solid #30343c; }
     .row button { border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; }
@@ -64,7 +71,7 @@
     @media (max-height: 600px) {
       body { padding-top: max(4px, env(safe-area-inset-top)); }
       header { min-height: 30px; }
-      #pad { min-height: 72px; }
+      #controlSurface, #pad { min-height: 72px; }
       button, .media button { min-height: 38px; }
       input, #send { height: 42px; min-height: 42px; }
     }
@@ -72,7 +79,13 @@
 </head>
 <body>
   <header><h1>Mously</h1><span id="status">Connecting…</span></header>
-  <main id="pad" data-mode="absolute" aria-label="Trackpad"></main>
+  <section id="controlSurface" aria-label="Pointer and volume controls">
+    <main id="pad" data-mode="absolute" aria-label="Trackpad"></main>
+    <div class="volumeControl">
+      <input id="volume" type="range" min="0" max="100" value="50" step="1" aria-label="Output volume" aria-orientation="vertical">
+      <output id="volumeValue" for="volume">50%</output>
+    </div>
+  </section>
   <section class="row media" aria-label="Media controls">
     <button data-media="play_pause" aria-label="Play or pause">▶︎❚❚</button>
     <button data-media="volume_down" aria-label="Volume down">−</button>
@@ -140,6 +153,9 @@
     const zoomDialog = document.querySelector('#zoomDialog');
     const pinchZoom = document.querySelector('#pinchZoom');
     const pinchSensitivity = document.querySelector('#pinchSensitivity');
+    const volume = document.querySelector('#volume');
+    const volumeControl = document.querySelector('.volumeControl');
+    const volumeValue = document.querySelector('#volumeValue');
     let socket, reconnectTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
     let threeFingerGesture = null;
@@ -150,12 +166,13 @@
 
     function connect() {
       socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
-      socket.onopen = () => { status.textContent = 'Connected'; status.className = 'online'; send('list_displays'); };
+      socket.onopen = () => { status.textContent = 'Connected'; status.className = 'online'; send('list_displays'); send('get_volume'); };
       socket.onmessage = event => {
         const message = JSON.parse(event.data);
         if (message.type === 'apps') renderApps(message.apps);
         if (message.type === 'activated' && message.ok) appsDialog.close();
         if (message.type === 'displays') renderDisplays(message.displays);
+        if (message.type === 'volume') setVolumeDisplay(message.value * 100);
         if (message.type === 'display_selected') {
           renderDisplays(message.displays);
           if (message.ok) screensDialog.close();
@@ -250,6 +267,29 @@
       screenToggle.disabled = inputMode !== 'absolute';
       modeChoices.forEach(button => button.classList.toggle('active', button.dataset.modeChoice === inputMode));
     }
+
+    function setVolumeDisplay(value) {
+      const rounded = Math.round(Math.max(0, Math.min(100, value)));
+      volume.value = rounded;
+      volumeValue.value = `${rounded}%`;
+      volumeValue.textContent = `${rounded}%`;
+      volume.setAttribute('aria-valuetext', `${rounded} percent`);
+      volumeValue.style.top = `clamp(8px, calc(${100 - rounded}% - 13px), calc(100% - 34px))`;
+    }
+    let volumeFrame = null;
+    volume.addEventListener('input', () => {
+      setVolumeDisplay(Number(volume.value));
+      volumeControl.classList.add('adjusting');
+      if (volumeFrame === null) volumeFrame = requestAnimationFrame(() => {
+        volumeFrame = null;
+        send('set_volume', {value: Number(volume.value) / 100});
+      });
+    });
+    volume.addEventListener('change', () => {
+      send('set_volume', {value: Number(volume.value) / 100});
+      setTimeout(() => volumeControl.classList.remove('adjusting'), 450);
+    });
+    volume.addEventListener('pointerdown', () => volumeControl.classList.add('adjusting'));
 
     pad.addEventListener('pointerdown', e => {
       pad.setPointerCapture(e.pointerId);

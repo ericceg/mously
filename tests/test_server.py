@@ -32,3 +32,17 @@ def test_magnify_is_dispatched_to_controller():
     dispatch(controller, "magnify", {"delta": 0.08, "phase": "changed"})
 
     assert controller.events == [(0.08, "changed")]
+
+
+def test_volume_is_dispatched_to_controller():
+    class RecordingController:
+        def __init__(self):
+            self.values = []
+
+        def set_volume(self, value):
+            self.values.append(value)
+
+    controller = RecordingController()
+    dispatch(controller, "set_volume", {"value": 0.72})
+
+    assert controller.values == [0.72]

@@ -76,6 +76,25 @@ def test_magnify_posts_native_gesture_to_session(monkeypatch):
     assert posted == [(macos.Quartz.kCGSessionEventTap, (event, 0.08, "changed"))]
 
 
+def test_volume_reads_and_sets_master_output(monkeypatch):
+    writes = []
+    controller = macos.MacController.__new__(macos.MacController)
+    monkeypatch.setattr(macos, "_default_output_device", lambda: 42)
+    monkeypatch.setattr(macos, "_get_audio_float", lambda device, selector, scope, element: 0.375)
+    monkeypatch.setattr(macos, "_set_audio_uint32", lambda *args: True)
+    monkeypatch.setattr(
+        macos,
+        "_set_audio_float",
+        lambda device, selector, scope, element, value: writes.append(
+            (device, selector, scope, element, value)
+        ) or True,
+    )
+
+    assert controller.volume() == pytest.approx(0.375)
+    controller.set_volume(0.8)
+    assert writes == [(42, "volm", "outp", 0, 0.8)]
+
+
 def test_synthetic_magnify_event_decodes_as_native_appkit_gesture():
     event = macos._create_magnify_event(0.08, "changed")
     native = macos.AppKit.NSEvent.eventWithCGEvent_(event)

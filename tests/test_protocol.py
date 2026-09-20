@@ -22,6 +22,7 @@ def test_move_is_parsed_and_bounded():
         {"action": "text", "text": "x" * 2001},
         {"action": "magnify", "phase": "huge", "delta": 0.1},
         {"action": "magnify", "phase": "changed", "delta": "large"},
+        {"action": "set_volume", "value": "loud"},
     ],
 )
 def test_invalid_commands_are_rejected(message):
@@ -62,6 +63,12 @@ def test_click_count_defaults_to_one_and_allows_double_click():
 def test_absolute_points_are_clamped_to_the_screen():
     command = parse_command({"action": "point", "x": -0.2, "y": 1.2})
     assert command.payload == {"x": 0.0, "y": 1.0}
+
+
+def test_volume_is_normalized_and_clamped():
+    assert parse_command({"action": "set_volume", "value": 1.4}).payload == {"value": 1.0}
+    assert parse_command({"action": "set_volume", "value": -0.2}).payload == {"value": 0.0}
+    assert parse_command({"action": "get_volume"}).action == "get_volume"
 
 
 @pytest.mark.parametrize("pid", [None, True, 0, -1, 2**31, "123"])

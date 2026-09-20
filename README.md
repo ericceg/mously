@@ -29,7 +29,7 @@ Use `uv run mously --port 9000` to choose another port.
 - Tap the pad or use the dedicated **Left click** button to click.
 - Drag two fingers to scroll; use the dedicated button to right-click.
 - **Double click** sends a native macOS double-click at the current pointer position.
-- Media buttons control play/pause, volume, and mute.
+- Media buttons control play/pause, volume steps, and mute; a slim vertical slider beside the trackpad sets output volume directly.
 - **Apps** shows the Mac's currently open apps; tap one to bring it to the front.
 - **Screen** changes the mapped display in Absolute mode; the largest connected display is selected by default.
 - Fullscreen sends `Control-Command-F`, the standard macOS fullscreen shortcut.

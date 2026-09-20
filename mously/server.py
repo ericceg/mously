@@ -52,6 +52,8 @@ def create_app(controller: MacController) -> web.Application:
                 elif command.action == "select_display":
                     selected = controller.select_display(command.payload["display_id"])
                     await ws.send_json({"type": "display_selected", "ok": selected, "displays": controller.displays()})
+                elif command.action == "get_volume":
+                    await ws.send_json({"type": "volume", "value": controller.volume()})
                 else:
                     dispatch(controller, command.action, command.payload)
             except (json.JSONDecodeError, ProtocolError, KeyError) as exc:
@@ -78,6 +80,8 @@ def dispatch(controller: MacController, action: str, payload: dict) -> None:
         controller.text(payload["text"])
     elif action == "media":
         controller.media(payload["key"])
+    elif action == "set_volume":
+        controller.set_volume(payload["value"])
     elif action == "magnify":
         controller.magnify(payload["delta"], payload["phase"])
 

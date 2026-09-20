@@ -35,6 +35,77 @@ MAGNIFY_PHASES = {
 }
 
 
+class _AudioObjectPropertyAddress(ctypes.Structure):
+    _fields_ = [
+        ("selector", ctypes.c_uint32),
+        ("scope", ctypes.c_uint32),
+        ("element", ctypes.c_uint32),
+    ]
+
+
+_CORE_AUDIO = ctypes.CDLL("/System/Library/Frameworks/CoreAudio.framework/CoreAudio")
+_CORE_AUDIO.AudioObjectGetPropertyData.argtypes = [
+    ctypes.c_uint32,
+    ctypes.POINTER(_AudioObjectPropertyAddress),
+    ctypes.c_uint32,
+    ctypes.c_void_p,
+    ctypes.POINTER(ctypes.c_uint32),
+    ctypes.c_void_p,
+]
+_CORE_AUDIO.AudioObjectGetPropertyData.restype = ctypes.c_int32
+_CORE_AUDIO.AudioObjectSetPropertyData.argtypes = [
+    ctypes.c_uint32,
+    ctypes.POINTER(_AudioObjectPropertyAddress),
+    ctypes.c_uint32,
+    ctypes.c_void_p,
+    ctypes.c_uint32,
+    ctypes.c_void_p,
+]
+_CORE_AUDIO.AudioObjectSetPropertyData.restype = ctypes.c_int32
+
+
+def _four_char_code(value: str) -> int:
+    return int.from_bytes(value.encode("ascii"), "big")
+
+
+def _default_output_device() -> int | None:
+    address = _AudioObjectPropertyAddress(_four_char_code("dOut"), _four_char_code("glob"), 0)
+    size = ctypes.c_uint32(ctypes.sizeof(ctypes.c_uint32))
+    device = ctypes.c_uint32()
+    status = _CORE_AUDIO.AudioObjectGetPropertyData(
+        1, ctypes.byref(address), 0, None, ctypes.byref(size), ctypes.byref(device)
+    )
+    return device.value if status == 0 else None
+
+
+def _get_audio_float(object_id: int, selector: str, scope: str, element: int) -> float | None:
+    address = _AudioObjectPropertyAddress(_four_char_code(selector), _four_char_code(scope), element)
+    size = ctypes.c_uint32(ctypes.sizeof(ctypes.c_float))
+    value = ctypes.c_float()
+    status = _CORE_AUDIO.AudioObjectGetPropertyData(
+        object_id, ctypes.byref(address), 0, None, ctypes.byref(size), ctypes.byref(value)
+    )
+    return float(value.value) if status == 0 else None
+
+
+def _set_audio_float(object_id: int, selector: str, scope: str, element: int, value: float) -> bool:
+    address = _AudioObjectPropertyAddress(_four_char_code(selector), _four_char_code(scope), element)
+    audio_value = ctypes.c_float(value)
+    status = _CORE_AUDIO.AudioObjectSetPropertyData(
+        object_id, ctypes.byref(address), 0, None, ctypes.sizeof(audio_value), ctypes.byref(audio_value)
+    )
+    return status == 0
+
+
+def _set_audio_uint32(object_id: int, selector: str, scope: str, element: int, value: int) -> bool:
+    address = _AudioObjectPropertyAddress(_four_char_code(selector), _four_char_code(scope), element)
+    audio_value = ctypes.c_uint32(value)
+    status = _CORE_AUDIO.AudioObjectSetPropertyData(
+        object_id, ctypes.byref(address), 0, None, ctypes.sizeof(audio_value), ctypes.byref(audio_value)
+    )
+    return status == 0
+
+
 class _DigitizerEventData(ctypes.Structure):
     _fields_ = [
         ("size", ctypes.c_uint32),
@@ -255,6 +326,32 @@ class MacController:
                 -1,
             )
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, event.CGEvent())
+
+    def volume(self) -> float:
+        device = _default_output_device()
+        if device is None:
+            return 0.0
+        master = _get_audio_float(device, "volm", "outp", 0)
+        if master is not None:
+            return max(0.0, min(1.0, master))
+        channels = [
+            value
+            for element in (1, 2)
+            if (value := _get_audio_float(device, "volm", "outp", element)) is not None
+        ]
+        return max(0.0, min(1.0, sum(channels) / len(channels))) if channels else 0.0
+
+    def set_volume(self, value: float) -> None:
+        device = _default_output_device()
+        if device is None:
+            return
+        value = max(0.0, min(1.0, value))
+        if value > 0:
+            _set_audio_uint32(device, "mute", "outp", 0, 0)
+        if _set_audio_float(device, "volm", "outp", 0, value):
+            return
+        for element in (1, 2):
+            _set_audio_float(device, "volm", "outp", element, value)
 
     def magnify(self, delta: float, phase: str) -> None:
         event = _create_magnify_event(delta, phase)
