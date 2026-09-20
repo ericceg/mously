@@ -34,7 +34,7 @@ Use `uv run mously --port 9000` to choose another port.
 
 Mously requests a short vibration for taps and buttons on browsers that implement
 the web Vibration API. iPhone Safari currently does not expose that API, so iOS
-uses the visual pressed state only.
+shows a touch ripple on the trackpad and a confirmation pulse on control buttons.
 
 Mously listens on the local network without authentication. Use it only on a
 network you trust, and stop the process when you are finished.
