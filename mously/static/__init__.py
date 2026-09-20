@@ -1,0 +1,2 @@
+"""Bundled web interface."""
+

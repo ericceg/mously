@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0c0d10">
+  <link rel="icon" href="data:,">
+  <title>Mously</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; color: #f7f7f8; touch-action: none; }
+    body { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); display: grid; grid-template-rows: auto 1fr auto auto; gap: 10px; }
+    header { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+    h1 { font-size: 18px; margin: 0; letter-spacing: -.3px; }
+    #status { color: #ffb84d; font-size: 12px; }
+    #status.online { color: #63df91; }
+    #pad { position: relative; min-height: 220px; border: 1px solid #2b2e35; border-radius: 22px; background: radial-gradient(circle at 50% 40%, #20232a, #15171c 70%); overflow: hidden; }
+    #pad::after { content: "Move · tap to click\A Two fingers to scroll"; white-space: pre; position: absolute; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
+    .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+    button { min-height: 48px; border: 1px solid #30343c; border-radius: 14px; background: #1c1f25; color: #f5f5f6; font: inherit; font-size: 16px; font-weight: 600; }
+    button:active { background: #343944; transform: scale(.98); }
+    .media button { min-height: 44px; font-size: 18px; }
+    .labels button { font-size: 13px; font-weight: 550; }
+    #keyboard { display: none; grid-template-columns: 1fr auto; gap: 8px; }
+    #keyboard.open { display: grid; }
+    input { min-width: 0; height: 46px; border: 1px solid #3b404a; border-radius: 13px; padding: 0 13px; background: #17191e; color: white; font-size: 16px; outline: none; }
+    #send { min-height: 46px; padding: 0 18px; color: #89b4ff; }
+    @media (max-height: 600px) { body { gap: 7px; } #pad { min-height: 160px; } button { min-height: 42px; } }
+  </style>
+</head>
+<body>
+  <header><h1>Mously</h1><span id="status">Connecting…</span></header>
+  <main id="pad" aria-label="Trackpad"></main>
+  <section class="row media" aria-label="Media controls">
+    <button data-media="play_pause" aria-label="Play or pause">▶︎❚❚</button>
+    <button data-media="volume_down" aria-label="Volume down">−</button>
+    <button data-media="volume_up" aria-label="Volume up">＋</button>
+    <button data-media="mute" aria-label="Mute">⌁</button>
+  </section>
+  <section class="row labels">
+    <button data-click="right">Right click</button>
+    <button data-key="fullscreen">Fullscreen</button>
+    <button data-key="escape">Esc</button>
+    <button id="keyboardToggle">Keyboard</button>
+  </section>
+  <section id="keyboard">
+    <input id="text" autocomplete="off" autocorrect="on" placeholder="Type on the Mac…">
+    <button id="send">Send</button>
+  </section>
+  <script>
+    const pad = document.querySelector('#pad');
+    const status = document.querySelector('#status');
+    const keyboard = document.querySelector('#keyboard');
+    const text = document.querySelector('#text');
+    let socket, reconnectTimer;
+    let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
+
+    function connect() {
+      socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+      socket.onopen = () => { status.textContent = 'Connected'; status.className = 'online'; };
+      socket.onclose = () => { status.textContent = 'Reconnecting…'; status.className = ''; reconnectTimer = setTimeout(connect, 1000); };
+      socket.onerror = () => socket.close();
+    }
+    function send(action, payload = {}) {
+      if (socket?.readyState === WebSocket.OPEN) socket.send(JSON.stringify({action, ...payload}));
+    }
+    function midpoint(points) {
+      const list = [...points.values()];
+      return { x: list.reduce((n, p) => n + p.x, 0) / list.length, y: list.reduce((n, p) => n + p.y, 0) / list.length };
+    }
+
+    pad.addEventListener('pointerdown', e => {
+      pad.setPointerCapture(e.pointerId);
+      touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
+      if (touches.size === 1) { startTime = performance.now(); totalMove = 0; maxTouches = 1; }
+      maxTouches = Math.max(maxTouches, touches.size);
+    });
+    pad.addEventListener('pointermove', e => {
+      if (!touches.has(e.pointerId)) return;
+      const before = midpoint(touches);
+      touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
+      const after = midpoint(touches);
+      const dx = after.x - before.x, dy = after.y - before.y;
+      totalMove += Math.abs(dx) + Math.abs(dy);
+      send(touches.size > 1 ? 'scroll' : 'move', {dx, dy});
+    });
+    function endPointer(e) {
+      const count = touches.size;
+      touches.delete(e.pointerId);
+      if (count === 1 && maxTouches === 1 && performance.now() - startTime < 260 && totalMove < 12) send('click', {button: 'left'});
+      if (count === 2 && maxTouches === 2 && performance.now() - startTime < 300 && totalMove < 14) send('click', {button: 'right'});
+      if (touches.size === 0) maxTouches = 0;
+    }
+    pad.addEventListener('pointerup', endPointer);
+    pad.addEventListener('pointercancel', e => touches.delete(e.pointerId));
+    pad.addEventListener('contextmenu', e => e.preventDefault());
+
+    document.querySelectorAll('[data-media]').forEach(b => b.onclick = () => send('media', {key: b.dataset.media}));
+    document.querySelectorAll('[data-key]').forEach(b => b.onclick = () => send('key', {key: b.dataset.key}));
+    document.querySelectorAll('[data-click]').forEach(b => b.onclick = () => send('click', {button: b.dataset.click}));
+    document.querySelector('#keyboardToggle').onclick = () => { keyboard.classList.toggle('open'); if (keyboard.classList.contains('open')) text.focus(); };
+    function sendText() { if (text.value) { send('text', {text: text.value}); text.value = ''; } }
+    document.querySelector('#send').onclick = sendText;
+    text.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendText(); send('key', {key: 'enter'}); } });
+    connect();
+  </script>
+</body>
+</html>

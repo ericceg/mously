@@ -1,0 +1,27 @@
+[project]
+name = "mously"
+version = "0.1.0"
+description = "A tiny iPhone trackpad and media remote for macOS"
+requires-python = ">=3.11"
+dependencies = [
+    "aiohttp>=3.11,<4",
+    "pyobjc-framework-Cocoa>=11,<13",
+    "pyobjc-framework-Quartz>=11,<13",
+]
+
+[project.scripts]
+mously = "mously.server:main"
+
+[dependency-groups]
+dev = ["pytest>=8,<9"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mously"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
