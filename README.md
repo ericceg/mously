@@ -33,7 +33,7 @@ Use `uv run mously --port 9000` to choose another port.
 - **Apps** shows the Mac's currently open apps; tap one to bring it to the front.
 - **Screen** changes the mapped display in Absolute mode; the largest connected display is selected by default.
 - Fullscreen sends `Control-Command-F`, the standard macOS fullscreen shortcut.
-- Pinch on the trackpad to send a native macOS magnify gesture to the content beneath the pointer, as with a physical trackpad in Safari, Preview, Maps, and other supported apps. **Pinch zoom** lets you disable it or adjust its sensitivity; the setting is saved on the phone.
+- Two-finger drags always scroll or pan in any direction. Hold a third finger on the trackpad and pinch with the other two to send a native macOS magnify gesture, as with a physical trackpad in Safari, Preview, Maps, and other supported apps. In Absolute mode, magnification centers beneath the pinching pair; in Relative mode it stays beneath the existing pointer. **Pinch zoom** lets you disable it or adjust its sensitivity; the setting is saved on the phone.
 - Keyboard opens a text field; **Send** types its contents into the focused Mac app.
 
 Mously requests a short vibration for taps and buttons on browsers that implement

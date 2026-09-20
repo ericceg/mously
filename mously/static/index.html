@@ -18,10 +18,10 @@
     #status.online { color: #63df91; }
     #pad { position: relative; min-height: 120px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 40%, #20232a, #15171c 70%); overflow: hidden; }
     #pad::after { white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
-    #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers to scroll"; }
-    #pad[data-mode="relative"]::after { content: "Drag to move pointer\A Two fingers to scroll"; }
-    #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers scroll · pinch to zoom"; }
-    #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "Drag to move pointer\A Two fingers scroll · pinch to zoom"; }
+    #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers scroll and pan"; }
+    #pad[data-mode="relative"]::after { content: "Drag to move pointer\A Two fingers scroll and pan"; }
+    #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers pan · three fingers pinch"; }
+    #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "Drag to move pointer\A Two fingers pan · three fingers pinch"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
     .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid #63df91; border-radius: 50%; background: #63df913d; color: #b7ffcd; box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
     .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-left: 1px solid #30343c; }
@@ -113,7 +113,7 @@
   <dialog id="zoomDialog">
     <div class="dialogHeader"><h2>Trackpad pinch zoom</h2><button id="zoomClose" aria-label="Close">×</button></div>
     <div class="zoomSettings">
-      <label for="pinchZoom">Pinch on trackpad</label>
+      <label for="pinchZoom">Three-finger pinch</label>
       <label class="switch"><input id="pinchZoom" type="checkbox"><span aria-hidden="true"></span></label>
       <label for="pinchSensitivity">Pinch sensitivity</label>
       <select id="pinchSensitivity">
@@ -121,7 +121,7 @@
         <option value="normal">Normal</option>
         <option value="fast">Fast</option>
       </select>
-      <p class="zoomHint">Place the pointer over what you want to inspect, then pinch apart to zoom in or together to zoom out. A parallel two-finger drag still scrolls.</p>
+      <p class="zoomHint">Keep one finger planted, then pinch with the other two. With two fingers, drag in any direction to pan or scroll. In Absolute mode, zoom centers between the pinching fingers.</p>
     </div>
   </dialog>
   <script>
@@ -142,7 +142,7 @@
     const pinchSensitivity = document.querySelector('#pinchSensitivity');
     let socket, reconnectTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
-    let twoFingerGesture = null;
+    let threeFingerGesture = null;
     let inputMode = localStorage.getItem('mouslyPointerMode') === 'relative' ? 'relative' : 'absolute';
     let pinchZoomEnabled = localStorage.getItem('mouslyPinchZoom') !== 'false';
     let zoomSensitivity = ['gentle', 'normal', 'fast'].includes(localStorage.getItem('mouslyZoomSensitivity'))
@@ -193,50 +193,44 @@
       const list = [...points.values()];
       return { x: list.reduce((n, p) => n + p.x, 0) / list.length, y: list.reduce((n, p) => n + p.y, 0) / list.length };
     }
-    function distance(points) {
-      const [a, b] = [...points.values()];
+    function distanceBetween(points, pair) {
+      const [a, b] = pair.map(id => points.get(id));
       return Math.hypot(a.x - b.x, a.y - b.y);
     }
-    function beginTwoFingerGesture() {
-      twoFingerGesture = {
-        mode: 'pending',
-        lastDistance: distance(touches),
-        initialDistance: distance(touches),
-        scaleTravel: 0,
-        panTravel: 0,
-      };
-    }
-    function handleTwoFingerGesture(dx, dy) {
-      if (!pinchZoomEnabled || touches.size !== 2) {
-        send('scroll', {dx, dy});
-        return;
-      }
-      if (!twoFingerGesture) beginTwoFingerGesture();
-      const nextDistance = distance(touches);
-      const previousDistance = twoFingerGesture.lastDistance;
-      const scaleDelta = nextDistance - previousDistance;
-      twoFingerGesture.lastDistance = nextDistance;
-      twoFingerGesture.scaleTravel += Math.abs(scaleDelta);
-      twoFingerGesture.panTravel += Math.hypot(dx, dy);
-
-      if (twoFingerGesture.mode === 'pending') {
-        if (twoFingerGesture.scaleTravel >= 10 && twoFingerGesture.scaleTravel > twoFingerGesture.panTravel * 1.25) {
-          twoFingerGesture.mode = 'zoom';
-          send('magnify', {phase: 'began', delta: 0});
-          const gain = {gentle: 0.65, normal: 1, fast: 1.45}[zoomSensitivity];
-          const delta = (nextDistance / twoFingerGesture.initialDistance - 1) * gain;
-          send('magnify', {phase: 'changed', delta});
-          return;
-        } else if (twoFingerGesture.panTravel >= 6 && twoFingerGesture.panTravel >= twoFingerGesture.scaleTravel * 0.8) {
-          twoFingerGesture.mode = 'scroll';
+    function closestPair(points) {
+      const entries = [...points.entries()];
+      let result = null, shortest = Infinity;
+      for (let i = 0; i < entries.length; i++) {
+        for (let j = i + 1; j < entries.length; j++) {
+          const dx = entries[i][1].x - entries[j][1].x;
+          const dy = entries[i][1].y - entries[j][1].y;
+          const candidate = Math.hypot(dx, dy);
+          if (candidate < shortest) {
+            shortest = candidate;
+            result = [entries[i][0], entries[j][0]];
+          }
         }
       }
-      if (twoFingerGesture.mode === 'scroll') {
-        send('scroll', {dx, dy});
-      } else if (twoFingerGesture.mode === 'zoom') {
-        const gain = {gentle: 0.65, normal: 1, fast: 1.45}[zoomSensitivity];
-        send('magnify', {phase: 'changed', delta: (nextDistance / previousDistance - 1) * gain});
+      return result;
+    }
+    function beginThreeFingerGesture() {
+      const pair = closestPair(touches);
+      threeFingerGesture = {pair, lastDistance: distanceBetween(touches, pair)};
+      if (inputMode === 'absolute') {
+        const pinchPoints = new Map(pair.map(id => [id, touches.get(id)]));
+        const center = midpoint(pinchPoints);
+        send('point', normalizedPoint({clientX: center.x, clientY: center.y}));
       }
+      send('magnify', {phase: 'began', delta: 0});
+    }
+    function handleThreeFingerGesture() {
+      if (!threeFingerGesture) beginThreeFingerGesture();
+      const nextDistance = distanceBetween(touches, threeFingerGesture.pair);
+      const previousDistance = threeFingerGesture.lastDistance;
+      threeFingerGesture.lastDistance = nextDistance;
+      if (previousDistance === 0 || nextDistance === previousDistance) return;
+      const gain = {gentle: 0.65, normal: 1, fast: 1.45}[zoomSensitivity];
+      send('magnify', {phase: 'changed', delta: (nextDistance / previousDistance - 1) * gain});
     }
     function normalizedPoint(event) {
       const bounds = pad.getBoundingClientRect();
@@ -262,10 +256,10 @@
       touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
       if (touches.size === 1) { startTime = performance.now(); totalMove = 0; maxTouches = 1; }
       maxTouches = Math.max(maxTouches, touches.size);
-      if (touches.size === 2) beginTwoFingerGesture();
-      else if (touches.size > 2) {
-        if (twoFingerGesture?.mode === 'zoom') send('magnify', {phase: 'cancelled', delta: 0});
-        twoFingerGesture = null;
+      if (touches.size === 3 && pinchZoomEnabled) beginThreeFingerGesture();
+      else if (touches.size > 3) {
+        if (threeFingerGesture) send('magnify', {phase: 'cancelled', delta: 0});
+        threeFingerGesture = null;
       }
       if (touches.size === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
     });
@@ -276,17 +270,19 @@
       const after = midpoint(touches);
       const dx = after.x - before.x, dy = after.y - before.y;
       totalMove += Math.abs(dx) + Math.abs(dy);
-      if (touches.size > 1) handleTwoFingerGesture(dx, dy);
+      if (touches.size === 2) send('scroll', {dx, dy});
+      else if (touches.size === 3 && pinchZoomEnabled) handleThreeFingerGesture();
+      else if (touches.size > 1) send('scroll', {dx, dy});
       else if (maxTouches === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
       else if (maxTouches === 1) send('move', {dx, dy});
     });
     function endPointer(e) {
       const count = touches.size;
-      if (count === 2 && twoFingerGesture?.mode === 'zoom') {
+      if (count === 3 && threeFingerGesture) {
         send('magnify', {phase: 'ended', delta: 0});
       }
       touches.delete(e.pointerId);
-      if (touches.size < 2) twoFingerGesture = null;
+      if (touches.size < 3) threeFingerGesture = null;
       if (count === 1 && maxTouches === 1 && performance.now() - startTime < 260 && totalMove < 12) {
         haptic();
         confirmPad(e);
@@ -296,11 +292,11 @@
     }
     pad.addEventListener('pointerup', endPointer);
     pad.addEventListener('pointercancel', e => {
-      if (touches.size === 2 && twoFingerGesture?.mode === 'zoom') {
+      if (touches.size === 3 && threeFingerGesture) {
         send('magnify', {phase: 'cancelled', delta: 0});
       }
       touches.delete(e.pointerId);
-      if (touches.size < 2) twoFingerGesture = null;
+      if (touches.size < 3) threeFingerGesture = null;
       if (touches.size === 0) maxTouches = 0;
     });
     pad.addEventListener('contextmenu', e => e.preventDefault());
