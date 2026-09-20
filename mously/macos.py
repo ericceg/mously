@@ -24,6 +24,12 @@ MEDIA_KEYS = {
     "play_pause": 16,
 }
 
+ZOOM_KEYS = {
+    "in": (24, Quartz.kCGEventFlagMaskCommand | Quartz.kCGEventFlagMaskShift),
+    "out": (27, Quartz.kCGEventFlagMaskCommand),
+    "reset": (29, Quartz.kCGEventFlagMaskCommand),
+}
+
 
 class MacController:
     def __init__(self) -> None:
@@ -124,6 +130,11 @@ class MacController:
                 -1,
             )
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, event.CGEvent())
+
+    def zoom(self, direction: str) -> None:
+        """Send the standard page-zoom shortcut used by macOS browsers."""
+        key_code, flags = ZOOM_KEYS[direction]
+        self._key_combo(key_code, flags)
 
     def applications(self) -> list[dict[str, object]]:
         workspace = AppKit.NSWorkspace.sharedWorkspace()

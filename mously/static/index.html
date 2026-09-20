@@ -20,6 +20,8 @@
     #pad::after { white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
     #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers to scroll"; }
     #pad[data-mode="relative"]::after { content: "Drag to move pointer\A Two fingers to scroll"; }
+    #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers scroll · pinch to zoom"; }
+    #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "Drag to move pointer\A Two fingers scroll · pinch to zoom"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
     .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid #63df91; border-radius: 50%; background: #63df913d; color: #b7ffcd; box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
     .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-left: 1px solid #30343c; }
@@ -33,7 +35,7 @@
     .labels { grid-auto-flow: row; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid #30343c; }
     #keyboard { display: none; grid-template-columns: 1fr auto; gap: 0; border-left: 1px solid #3b404a; border-bottom: 1px solid #3b404a; }
     #keyboard.open { display: grid; }
-    input { min-width: 0; height: 50px; border: 0; border-right: 1px solid #3b404a; border-radius: 0; padding: 0 13px; background: #17191e; color: white; font-size: 16px; outline: none; }
+    #text { min-width: 0; height: 50px; border: 0; border-right: 1px solid #3b404a; border-radius: 0; padding: 0 13px; background: #17191e; color: white; font-size: 16px; outline: none; }
     #send { min-height: 50px; padding: 0 20px; border: 0; border-right: 1px solid #3b404a; color: #89b4ff; }
     dialog { width: 100%; max-width: 460px; max-height: 78vh; margin: auto auto 0; border: 1px solid #383c45; border-bottom: 0; border-radius: 0; padding: 12px 0 0; background: #14161b; color: #f7f7f8; box-shadow: 0 20px 80px #000a; }
     dialog::backdrop { background: #0009; backdrop-filter: blur(3px); }
@@ -44,6 +46,20 @@
     .selectionList button { position: relative; min-height: 58px; padding: 8px 24px 8px 12px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; }
     .selectionList button.active::after { content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #63df91; transform: translateY(-50%); }
     .selectionList .empty { grid-column: 1 / -1; color: #858b96; text-align: center; padding: 24px; }
+    #zoomToggle { grid-column: 1 / -1; }
+    .zoomControls { display: grid; grid-template-columns: repeat(3, 1fr); border-left: 1px solid #30343c; }
+    .zoomControls button { min-height: 64px; border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; font-size: 22px; }
+    .zoomControls button:nth-child(2) { font-size: 14px; }
+    .zoomSettings { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; padding: 16px 14px; border-top: 1px solid #30343c; }
+    .zoomSettings label { font-size: 14px; }
+    .zoomSettings select { min-width: 104px; height: 38px; border: 1px solid #454a55; border-radius: 7px; padding: 0 28px 0 10px; background: #20232a; color: #f7f7f8; font: inherit; }
+    .switch { position: relative; width: 48px; height: 28px; }
+    .switch input { position: absolute; opacity: 0; pointer-events: none; }
+    .switch span { position: absolute; inset: 0; border-radius: 14px; background: #3a3e47; transition: background 160ms; }
+    .switch span::after { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: white; transition: transform 160ms; }
+    .switch input:checked + span { background: #3478f6; }
+    .switch input:checked + span::after { transform: translateX(20px); }
+    .zoomHint { grid-column: 1 / -1; margin: -3px 0 0; color: #9298a3; font-size: 12px; line-height: 1.45; }
     @keyframes tap-ripple { from { opacity: .95; transform: scale(.3); } to { opacity: 0; transform: scale(1.45); } }
     @keyframes pad-confirmed { 0%, 100% { box-shadow: none; } 35% { box-shadow: inset 0 0 0 2px #72a9ff, inset 0 0 28px #4e91ff1f; } }
     @keyframes button-confirmed { 0%, 100% { background: #1c1f25; border-color: #30343c; } 35% { background: #294330; border-color: #63df91; box-shadow: 0 0 0 3px #63df9124; } }
@@ -76,6 +92,7 @@
     <button id="keyboardToggle">Keyboard</button>
     <button data-key="fullscreen">Fullscreen</button>
     <button data-key="escape">Esc</button>
+    <button id="zoomToggle">Zoom</button>
   </section>
   <section id="keyboard">
     <input id="text" autocomplete="off" autocorrect="on" placeholder="Type on the Mac…">
@@ -96,6 +113,25 @@
       <button data-mode-choice="relative">Relative · drag like a trackpad</button>
     </div>
   </dialog>
+  <dialog id="zoomDialog">
+    <div class="dialogHeader"><h2>Browser zoom</h2><button id="zoomClose" aria-label="Close">×</button></div>
+    <div class="zoomControls" aria-label="Browser zoom controls">
+      <button data-zoom="out" aria-label="Zoom out">−</button>
+      <button data-zoom="reset">Reset to 100%</button>
+      <button data-zoom="in" aria-label="Zoom in">＋</button>
+    </div>
+    <div class="zoomSettings">
+      <label for="pinchZoom">Pinch on trackpad</label>
+      <label class="switch"><input id="pinchZoom" type="checkbox"><span aria-hidden="true"></span></label>
+      <label for="pinchSensitivity">Pinch sensitivity</label>
+      <select id="pinchSensitivity">
+        <option value="gentle">Gentle</option>
+        <option value="normal">Normal</option>
+        <option value="fast">Fast</option>
+      </select>
+      <p class="zoomHint">Pinch apart to zoom in and together to zoom out. A parallel two-finger drag still scrolls.</p>
+    </div>
+  </dialog>
   <script>
     const pad = document.querySelector('#pad');
     const status = document.querySelector('#status');
@@ -109,9 +145,16 @@
     const modeDialog = document.querySelector('#modeDialog');
     const modeToggle = document.querySelector('#modeToggle');
     const modeChoices = document.querySelectorAll('[data-mode-choice]');
+    const zoomDialog = document.querySelector('#zoomDialog');
+    const pinchZoom = document.querySelector('#pinchZoom');
+    const pinchSensitivity = document.querySelector('#pinchSensitivity');
     let socket, reconnectTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
+    let twoFingerGesture = null;
     let inputMode = localStorage.getItem('mouslyPointerMode') === 'relative' ? 'relative' : 'absolute';
+    let pinchZoomEnabled = localStorage.getItem('mouslyPinchZoom') !== 'false';
+    let zoomSensitivity = ['gentle', 'normal', 'fast'].includes(localStorage.getItem('mouslyZoomSensitivity'))
+      ? localStorage.getItem('mouslyZoomSensitivity') : 'normal';
 
     function connect() {
       socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
@@ -158,6 +201,51 @@
       const list = [...points.values()];
       return { x: list.reduce((n, p) => n + p.x, 0) / list.length, y: list.reduce((n, p) => n + p.y, 0) / list.length };
     }
+    function distance(points) {
+      const [a, b] = [...points.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+    function beginTwoFingerGesture() {
+      twoFingerGesture = {
+        mode: 'pending',
+        lastDistance: distance(touches),
+        scaleTravel: 0,
+        panTravel: 0,
+        remainder: 0,
+      };
+    }
+    function handleTwoFingerGesture(dx, dy) {
+      if (!pinchZoomEnabled || touches.size !== 2) {
+        send('scroll', {dx, dy});
+        return;
+      }
+      if (!twoFingerGesture) beginTwoFingerGesture();
+      const nextDistance = distance(touches);
+      const scaleDelta = nextDistance - twoFingerGesture.lastDistance;
+      twoFingerGesture.lastDistance = nextDistance;
+      twoFingerGesture.scaleTravel += Math.abs(scaleDelta);
+      twoFingerGesture.panTravel += Math.hypot(dx, dy);
+
+      if (twoFingerGesture.mode === 'pending') {
+        if (twoFingerGesture.scaleTravel >= 10 && twoFingerGesture.scaleTravel > twoFingerGesture.panTravel * 1.25) {
+          twoFingerGesture.mode = 'zoom';
+          twoFingerGesture.remainder = 0;
+        } else if (twoFingerGesture.panTravel >= 6 && twoFingerGesture.panTravel >= twoFingerGesture.scaleTravel * 0.8) {
+          twoFingerGesture.mode = 'scroll';
+        }
+      }
+      if (twoFingerGesture.mode === 'scroll') {
+        send('scroll', {dx, dy});
+      } else if (twoFingerGesture.mode === 'zoom') {
+        const threshold = {gentle: 42, normal: 28, fast: 18}[zoomSensitivity];
+        twoFingerGesture.remainder += scaleDelta;
+        while (Math.abs(twoFingerGesture.remainder) >= threshold) {
+          const direction = twoFingerGesture.remainder > 0 ? 'in' : 'out';
+          send('zoom', {direction});
+          twoFingerGesture.remainder += twoFingerGesture.remainder > 0 ? -threshold : threshold;
+        }
+      }
+    }
     function normalizedPoint(event) {
       const bounds = pad.getBoundingClientRect();
       const edge = 0.04;
@@ -182,6 +270,7 @@
       touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
       if (touches.size === 1) { startTime = performance.now(); totalMove = 0; maxTouches = 1; }
       maxTouches = Math.max(maxTouches, touches.size);
+      if (touches.size === 2) beginTwoFingerGesture();
       if (touches.size === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
     });
     pad.addEventListener('pointermove', e => {
@@ -191,13 +280,14 @@
       const after = midpoint(touches);
       const dx = after.x - before.x, dy = after.y - before.y;
       totalMove += Math.abs(dx) + Math.abs(dy);
-      if (touches.size > 1) send('scroll', {dx, dy});
+      if (touches.size > 1) handleTwoFingerGesture(dx, dy);
       else if (maxTouches === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
       else if (maxTouches === 1) send('move', {dx, dy});
     });
     function endPointer(e) {
       const count = touches.size;
       touches.delete(e.pointerId);
+      if (touches.size < 2) twoFingerGesture = null;
       if (count === 1 && maxTouches === 1 && performance.now() - startTime < 260 && totalMove < 12) {
         haptic();
         confirmPad(e);
@@ -208,6 +298,7 @@
     pad.addEventListener('pointerup', endPointer);
     pad.addEventListener('pointercancel', e => {
       touches.delete(e.pointerId);
+      if (touches.size < 2) twoFingerGesture = null;
       if (touches.size === 0) maxTouches = 0;
     });
     pad.addEventListener('contextmenu', e => e.preventDefault());
@@ -268,6 +359,25 @@
       setInputMode(button.dataset.modeChoice);
       modeDialog.close();
     });
+    document.querySelector('#zoomToggle').onclick = () => zoomDialog.showModal();
+    document.querySelector('#zoomClose').onclick = () => zoomDialog.close();
+    zoomDialog.addEventListener('click', e => { if (e.target === zoomDialog) zoomDialog.close(); });
+    document.querySelectorAll('[data-zoom]').forEach(button => button.onclick = () => {
+      haptic();
+      send('zoom', {direction: button.dataset.zoom});
+    });
+    pinchZoom.checked = pinchZoomEnabled;
+    pad.dataset.pinchZoom = pinchZoomEnabled ? 'on' : 'off';
+    pinchSensitivity.value = zoomSensitivity;
+    pinchZoom.onchange = () => {
+      pinchZoomEnabled = pinchZoom.checked;
+      pad.dataset.pinchZoom = pinchZoomEnabled ? 'on' : 'off';
+      localStorage.setItem('mouslyPinchZoom', String(pinchZoomEnabled));
+    };
+    pinchSensitivity.onchange = () => {
+      zoomSensitivity = pinchSensitivity.value;
+      localStorage.setItem('mouslyZoomSensitivity', zoomSensitivity);
+    };
     function sendText() { if (text.value) { send('text', {text: text.value}); text.value = ''; } }
     document.querySelector('#send').onclick = sendText;
     text.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendText(); send('key', {key: 'enter'}); } });

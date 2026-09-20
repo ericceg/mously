@@ -22,6 +22,7 @@ ALLOWED_ACTIONS = {
     "key",
     "text",
     "media",
+    "zoom",
     "list_apps",
     "activate_app",
     "list_displays",
@@ -31,6 +32,7 @@ ALLOWED_ACTIONS = {
 ALLOWED_CLICKS = {"left", "right"}
 ALLOWED_KEYS = {"escape", "enter", "backspace", "space", "left", "right", "up", "down", "fullscreen"}
 ALLOWED_MEDIA = {"play_pause", "volume_up", "volume_down", "mute"}
+ALLOWED_ZOOM = {"in", "out", "reset"}
 
 
 def parse_command(message: Any) -> Command:
@@ -59,6 +61,8 @@ def parse_command(message: Any) -> Command:
         raise ProtocolError("invalid key")
     elif action == "media" and payload.get("key") not in ALLOWED_MEDIA:
         raise ProtocolError("invalid media key")
+    elif action == "zoom" and payload.get("direction") not in ALLOWED_ZOOM:
+        raise ProtocolError("invalid zoom direction")
     elif action == "text":
         value = payload.get("text")
         if not isinstance(value, str) or len(value) > 2_000:

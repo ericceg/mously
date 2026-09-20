@@ -33,6 +33,7 @@ Use `uv run mously --port 9000` to choose another port.
 - **Apps** shows the Mac's currently open apps; tap one to bring it to the front.
 - **Screen** changes the mapped display in Absolute mode; the largest connected display is selected by default.
 - Fullscreen sends `Control-Command-F`, the standard macOS fullscreen shortcut.
+- **Zoom** offers large zoom-out, reset, and zoom-in controls for the frontmost browser. You can also pinch on the trackpad; its sensitivity is adjustable and saved on the phone.
 - Keyboard opens a text field; **Send** types its contents into the focused Mac app.
 
 Mously requests a short vibration for taps and buttons on browsers that implement

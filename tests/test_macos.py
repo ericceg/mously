@@ -60,3 +60,15 @@ def test_double_click_posts_two_clicks_with_native_click_states(monkeypatch):
     assert len(events) == 4
     assert [event["click_state"] for event in posted] == [1, 1, 2, 2]
     assert all(event["button"] == macos.Quartz.kCGMouseButtonLeft for event in posted)
+
+
+def test_zoom_uses_standard_browser_shortcuts(monkeypatch):
+    shortcuts = []
+    controller = macos.MacController.__new__(macos.MacController)
+    monkeypatch.setattr(controller, "_key_combo", lambda key_code, flags=0: shortcuts.append((key_code, flags)))
+
+    controller.zoom("in")
+    controller.zoom("out")
+    controller.zoom("reset")
+
+    assert shortcuts == [macos.ZOOM_KEYS["in"], macos.ZOOM_KEYS["out"], macos.ZOOM_KEYS["reset"]]

@@ -20,6 +20,7 @@ def test_move_is_parsed_and_bounded():
         {"action": "move", "dx": "fast", "dy": 1},
         {"action": "point", "x": "left", "y": 0.5},
         {"action": "text", "text": "x" * 2001},
+        {"action": "zoom", "direction": "huge"},
     ],
 )
 def test_invalid_commands_are_rejected(message):
@@ -33,6 +34,12 @@ def test_expected_controls_are_allowed():
     assert parse_command({"action": "list_apps"}).action == "list_apps"
     assert parse_command({"action": "list_displays"}).action == "list_displays"
     assert parse_command({"action": "activate_app", "pid": 123}).payload["pid"] == 123
+    assert parse_command({"action": "zoom", "direction": "in"}).payload["direction"] == "in"
+
+
+@pytest.mark.parametrize("direction", ["in", "out", "reset"])
+def test_zoom_directions_are_allowed(direction):
+    assert parse_command({"action": "zoom", "direction": direction}).payload == {"direction": direction}
 
 
 def test_click_count_defaults_to_one_and_allows_double_click():
