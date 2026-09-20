@@ -15,6 +15,6 @@ def test_remote_page_is_never_cached():
             response = await client.get("/")
             assert response.status == 200
             assert response.headers["Cache-Control"] == "no-store"
-            assert "tap to click" in await response.text()
+            assert "Touch to position pointer" in await response.text()
 
     asyncio.run(check())

@@ -28,6 +28,7 @@ MEDIA_KEYS = {
 class MacController:
     def __init__(self) -> None:
         self._position = self._current_position()
+        self._selected_display_id = self._default_display_id()
 
     @staticmethod
     def request_accessibility() -> bool:
@@ -41,6 +42,20 @@ class MacController:
         gain = 1.35 + min(distance / 24.0, 1.65)
         current = self._current_position()
         point = Quartz.CGPoint(current.x + dx * gain, current.y + dy * gain)
+        event = Quartz.CGEventCreateMouseEvent(None, Quartz.kCGEventMouseMoved, point, Quartz.kCGMouseButtonLeft)
+        Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
+        self._position = point
+
+    def point(self, x: float, y: float) -> None:
+        displays = self.displays()
+        selected = next((display for display in displays if display["selected"]), None)
+        if selected is None:
+            self._selected_display_id = self._default_display_id()
+        bounds = Quartz.CGDisplayBounds(self._selected_display_id)
+        point = Quartz.CGPoint(
+            bounds.origin.x + x * max(bounds.size.width - 1, 0),
+            bounds.origin.y + y * max(bounds.size.height - 1, 0),
+        )
         event = Quartz.CGEventCreateMouseEvent(None, Quartz.kCGEventMouseMoved, point, Quartz.kCGMouseButtonLeft)
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
         self._position = point
@@ -125,12 +140,72 @@ class MacController:
             applications.append({"name": str(name), "pid": pid, "active": pid == frontmost_pid})
         return sorted(applications, key=lambda app: (not app["active"], str(app["name"]).casefold()))
 
+    def displays(self) -> list[dict[str, object]]:
+        result, display_ids, _count = Quartz.CGGetActiveDisplayList(16, None, None)
+        if result != Quartz.kCGErrorSuccess:
+            return []
+        names = {
+            int(screen.deviceDescription()["NSScreenNumber"]): str(screen.localizedName())
+            for screen in AppKit.NSScreen.screens()
+        }
+        displays = []
+        for display_id in display_ids:
+            display_id = int(display_id)
+            bounds = Quartz.CGDisplayBounds(display_id)
+            displays.append(
+                {
+                    "display_id": display_id,
+                    "name": names.get(display_id, f"Display {display_id}"),
+                    "width": int(bounds.size.width),
+                    "height": int(bounds.size.height),
+                    "selected": display_id == self._selected_display_id,
+                    "builtin": bool(Quartz.CGDisplayIsBuiltin(display_id)),
+                }
+            )
+        if displays and not any(display["selected"] for display in displays):
+            self._selected_display_id = self._choose_largest_display(displays)
+            for display in displays:
+                display["selected"] = display["display_id"] == self._selected_display_id
+        return sorted(displays, key=lambda display: (not display["selected"], display["builtin"], display["name"]))
+
+    def select_display(self, display_id: int) -> bool:
+        available_ids = {display["display_id"] for display in self.displays()}
+        if display_id not in available_ids:
+            return False
+        self._selected_display_id = display_id
+        return True
+
     @staticmethod
     def activate_application(pid: int) -> bool:
         application = AppKit.NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
         if application is None or application.activationPolicy() != AppKit.NSApplicationActivationPolicyRegular:
             return False
         return bool(application.activateWithOptions_(AppKit.NSApplicationActivateIgnoringOtherApps))
+
+    def _default_display_id(self) -> int:
+        result, display_ids, _count = Quartz.CGGetActiveDisplayList(16, None, None)
+        if result != Quartz.kCGErrorSuccess or not display_ids:
+            return int(Quartz.CGMainDisplayID())
+        candidates = []
+        for display_id in display_ids:
+            bounds = Quartz.CGDisplayBounds(display_id)
+            candidates.append(
+                {
+                    "display_id": int(display_id),
+                    "width": int(bounds.size.width),
+                    "height": int(bounds.size.height),
+                    "builtin": bool(Quartz.CGDisplayIsBuiltin(display_id)),
+                }
+            )
+        return self._choose_largest_display(candidates)
+
+    @staticmethod
+    def _choose_largest_display(displays: list[dict[str, object]]) -> int:
+        display = max(
+            displays,
+            key=lambda item: (int(item["width"]) * int(item["height"]), not bool(item["builtin"])),
+        )
+        return int(display["display_id"])
 
     @staticmethod
     def _key_combo(key_code: int, flags: int = 0) -> None:
