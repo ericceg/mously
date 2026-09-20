@@ -39,7 +39,7 @@ class MacController:
     def move(self, dx: float, dy: float) -> None:
         # A little acceleration makes crossing a TV-sized display comfortable.
         distance = (dx * dx + dy * dy) ** 0.5
-        gain = 1.35 + min(distance / 24.0, 1.65)
+        gain = 1.8 + min(distance / 20.0, 3)
         current = self._current_position()
         point = Quartz.CGPoint(current.x + dx * gain, current.y + dy * gain)
         event = Quartz.CGEventCreateMouseEvent(None, Quartz.kCGEventMouseMoved, point, Quartz.kCGMouseButtonLeft)
