@@ -15,7 +15,10 @@ def test_remote_page_is_never_cached():
             response = await client.get("/")
             assert response.status == 200
             assert response.headers["Cache-Control"] == "no-store"
-            assert "Touch to position pointer" in await response.text()
+            page = await response.text()
+            assert "Touch to position pointer" in page
+            assert 'data-key="left" aria-label="Skip back 5 seconds"' in page
+            assert 'data-key="right" aria-label="Skip forward 5 seconds"' in page
 
     asyncio.run(check())
 

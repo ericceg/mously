@@ -11,35 +11,43 @@
     :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     html { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; }
-    body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #0c0d10; color: #f7f7f8; touch-action: none; padding: max(8px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 0; }
-    header { display: flex; min-height: 36px; align-items: center; justify-content: space-between; padding: 0 12px; border-bottom: 1px solid #30343c; }
-    h1 { font-size: 17px; margin: 0; letter-spacing: -.3px; }
-    #status { color: #ffb84d; font-size: 12px; }
+    body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #0c0d10; color: #f7f7f8; touch-action: none; padding: max(4px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto auto; gap: 0; }
+    header { display: flex; min-height: 34px; align-items: center; justify-content: space-between; padding: 0 14px; }
+    h1 { font-size: 16px; margin: 0; letter-spacing: -.3px; }
+    #status { display: flex; align-items: center; gap: 6px; color: #ffb84d; font-size: 12px; }
+    #status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
     #status.online { color: #63df91; }
-    #controlSurface { display: grid; grid-template-columns: minmax(0, 1fr) 46px; min-height: 120px; overflow: hidden; }
-    #pad { position: relative; min-width: 0; min-height: 120px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 40%, #20232a, #15171c 70%); overflow: hidden; }
+    #controlSurface { display: grid; grid-template-columns: minmax(0, 1fr) 64px; min-height: 150px; overflow: hidden; border-top: 1px solid #30343c; border-bottom: 1px solid #30343c; background: #15171c; }
+    #pad { position: relative; min-width: 0; min-height: 150px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 38%, #232730, #15171c 72%); overflow: hidden; }
     #pad::after { white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
     #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers scroll and pan"; }
     #pad[data-mode="relative"]::after { content: "Drag to move pointer\A Two fingers scroll and pan"; }
     #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers pan · three fingers pinch"; }
     #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "Drag to move pointer\A Two fingers pan · three fingers pinch"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
-    .volumeControl { position: relative; display: grid; place-items: center; border-left: 1px solid #30343c; background: #17191e; }
-    #volume { width: 100%; height: calc(100% - 24px); min-height: 88px; margin: 12px 0; writing-mode: vertical-lr; direction: rtl; accent-color: #72a9ff; cursor: ns-resize; touch-action: none; }
+    .volumeControl { position: relative; display: grid; grid-template-rows: 48px minmax(48px, 1fr) 48px; place-items: center; border-left: 1px solid #30343c; background: #191c22; }
+    .volumeStep { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; background: #1c1f25; color: #f5f5f6; font-size: 22px; }
+    #volume { width: 100%; height: calc(100% - 12px); min-height: 48px; margin: 6px 0; writing-mode: vertical-lr; direction: rtl; accent-color: #72a9ff; cursor: ns-resize; touch-action: none; }
     #volume::-webkit-slider-runnable-track { width: 5px; border-radius: 3px; background: #343944; }
     #volume::-webkit-slider-thumb { width: 24px; height: 24px; margin-left: -9.5px; border: 2px solid #b9d3ff; border-radius: 50%; background: #72a9ff; box-shadow: 0 1px 5px #0009; }
-    #volumeValue { position: absolute; right: 43px; z-index: 4; min-width: 42px; padding: 5px 6px; border-radius: 6px; background: #0a0b0ee8; color: #dbe9ff; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; opacity: 0; transform: translateX(4px); transition: opacity 120ms, transform 120ms; }
+    #volumeValue { position: absolute; right: 60px; z-index: 4; min-width: 46px; padding: 6px; border-radius: 8px; background: #0a0b0ef2; color: #dbe9ff; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; opacity: 0; transform: translateX(4px); transition: opacity 120ms, transform 120ms; }
     .volumeControl.adjusting #volumeValue { opacity: 1; transform: translateX(0); }
     .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid #63df91; border-radius: 50%; background: #63df913d; color: #b7ffcd; box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
     .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-left: 1px solid #30343c; }
-    .row button { border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; }
-    button { min-height: 50px; border: 1px solid #30343c; border-radius: 0; background: #1c1f25; color: #f5f5f6; font: inherit; font-size: 16px; font-weight: 600; }
+    .row button { border-width: 0 1px 1px 0; }
+    button { min-height: 50px; border: 1px solid #353a44; border-radius: 0; background: #1c1f25; color: #f5f5f6; font: inherit; font-size: 16px; font-weight: 650; }
     button:active { background: #343944; transform: scale(.98); }
     button:disabled { opacity: .38; background: #15171c; }
     button.confirmed { animation: button-confirmed 360ms ease-out; }
-    .media button { min-height: 50px; font-size: 18px; }
-    .labels button { font-size: 13px; font-weight: 550; }
-    .labels { grid-auto-flow: row; grid-template-columns: repeat(3, 1fr); border-bottom: 1px solid #30343c; }
+    .quickBar { grid-template-columns: 1.7fr 1fr 1fr 1fr; }
+    .quickBar button { min-width: 0; min-height: 46px; padding: 0 8px; font-size: 13px; }
+    .quickBar #appsToggle { font-size: 15px; }
+    .clicks button { min-height: 58px; font-size: 14px; }
+    .media { grid-template-columns: 1fr 1.35fr 1fr; }
+    .media button { min-height: 66px; font-size: 20px; }
+    .media button[data-media="play_pause"] { border-color: #568ce0; background: #3478f6; color: white; font-size: 23px; }
+    .buttonLabel { display: block; margin-top: 3px; color: #9298a3; font-size: 10px; font-weight: 550; letter-spacing: .2px; }
+    .media button[data-media="play_pause"] .buttonLabel { color: #dce9ff; }
     #keyboard { display: none; grid-template-columns: 1fr auto; gap: 0; border-left: 1px solid #3b404a; border-bottom: 1px solid #3b404a; }
     #keyboard.open { display: grid; }
     #text { min-width: 0; height: 50px; border: 0; border-right: 1px solid #3b404a; border-radius: 0; padding: 0 13px; background: #17191e; color: white; font-size: 16px; outline: none; }
@@ -54,6 +62,11 @@
     .selectionList button.active::after { content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #63df91; transform: translateY(-50%); }
     .selectionList .empty { grid-column: 1 / -1; color: #858b96; text-align: center; padding: 24px; }
     #zoomToggle { grid-column: 1 / -1; }
+    .occasionalGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; padding: 0; border-left: 1px solid #30343c; }
+    .occasionalGrid button { border-width: 1px 1px 0 0; }
+    .occasionalGrid button { min-height: 58px; font-size: 14px; }
+    .occasionalGrid .wide { grid-column: 1 / -1; }
+    .dialogSectionLabel { grid-column: 1 / -1; margin: 0; padding: 14px 12px 7px; color: #858b96; font-size: 11px; font-weight: 650; letter-spacing: .7px; text-transform: uppercase; }
     .zoomSettings { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; padding: 16px 14px; border-top: 1px solid #30343c; }
     .zoomSettings label { font-size: 14px; }
     .zoomSettings select { min-width: 104px; height: 38px; border: 1px solid #454a55; border-radius: 7px; padding: 0 28px 0 10px; background: #20232a; color: #f7f7f8; font: inherit; }
@@ -72,37 +85,39 @@
       body { padding-top: max(4px, env(safe-area-inset-top)); }
       header { min-height: 30px; }
       #controlSurface, #pad { min-height: 72px; }
-      button, .media button { min-height: 38px; }
+      .quickBar button { min-height: 38px; }
+      .clicks button { min-height: 46px; }
+      .media button { min-height: 52px; }
       input, #send { height: 42px; min-height: 42px; }
     }
   </style>
 </head>
 <body>
   <header><h1>Mously</h1><span id="status">Connecting…</span></header>
+  <section class="row quickBar" aria-label="Quick actions">
+    <button id="appsToggle">▦ Apps</button>
+    <button data-media="mute" aria-label="Mute">Mute</button>
+    <button id="keyboardToggle">Keyboard</button>
+    <button id="moreToggle" aria-haspopup="dialog">••• More</button>
+  </section>
   <section id="controlSurface" aria-label="Pointer and volume controls">
     <main id="pad" data-mode="absolute" aria-label="Trackpad"></main>
     <div class="volumeControl">
+      <button class="volumeStep" data-media="volume_up" aria-label="Volume up">＋</button>
       <input id="volume" type="range" min="0" max="100" value="50" step="1" aria-label="Output volume" aria-orientation="vertical">
       <output id="volumeValue" for="volume">50%</output>
+      <button class="volumeStep" data-media="volume_down" aria-label="Volume down">−</button>
     </div>
   </section>
-  <section class="row media" aria-label="Media controls">
-    <button data-media="play_pause" aria-label="Play or pause">▶︎❚❚</button>
-    <button data-media="volume_down" aria-label="Volume down">−</button>
-    <button data-media="volume_up" aria-label="Volume up">＋</button>
-    <button data-media="mute" aria-label="Mute">⌁</button>
+  <section class="row clicks" aria-label="Mouse buttons">
+    <button data-click="left">Left click<span class="buttonLabel">PRIMARY</span></button>
+    <button data-click="left" data-count="2">Double<span class="buttonLabel">CLICK</span></button>
+    <button data-click="right">Right click<span class="buttonLabel">SECONDARY</span></button>
   </section>
-  <section class="row labels">
-    <button data-click="left">Left click</button>
-    <button data-click="right">Right click</button>
-    <button data-click="left" data-count="2">Double click</button>
-    <button id="modeToggle">Absolute</button>
-    <button id="screenToggle">Screen</button>
-    <button id="appsToggle">Apps</button>
-    <button id="keyboardToggle">Keyboard</button>
-    <button data-key="fullscreen">Fullscreen</button>
-    <button data-key="escape">Esc</button>
-    <button id="zoomToggle">Pinch zoom</button>
+  <section class="row media" aria-label="Media controls">
+    <button data-key="left" aria-label="Skip back 5 seconds" title="Skip back 5 seconds">↶ 5<span class="buttonLabel">BACK</span></button>
+    <button data-media="play_pause" aria-label="Play or pause">▶︎❚❚<span class="buttonLabel">PLAY / PAUSE</span></button>
+    <button data-key="right" aria-label="Skip forward 5 seconds" title="Skip forward 5 seconds">5 ↷<span class="buttonLabel">AHEAD</span></button>
   </section>
   <section id="keyboard">
     <input id="text" autocomplete="off" autocorrect="on" placeholder="Type on the Mac…">
@@ -111,6 +126,18 @@
   <dialog id="appsDialog">
     <div class="dialogHeader"><h2>Switch app</h2><button id="appsClose" aria-label="Close">×</button></div>
     <div id="appList" class="selectionList"><div class="empty">Loading open apps…</div></div>
+  </dialog>
+  <dialog id="moreDialog">
+    <div class="dialogHeader"><h2>More controls</h2><button id="moreClose" aria-label="Close">×</button></div>
+    <div class="occasionalGrid">
+      <div class="dialogSectionLabel">Pointer settings</div>
+      <button id="modeToggle">Absolute</button>
+      <button id="screenToggle">Screen</button>
+      <button id="zoomToggle" class="wide">Pinch zoom</button>
+      <div class="dialogSectionLabel">Occasional keys</div>
+      <button data-key="fullscreen" data-close-more>Fullscreen</button>
+      <button data-key="escape" data-close-more>Esc</button>
+    </div>
   </dialog>
   <dialog id="screensDialog">
     <div class="dialogHeader"><h2>Map to screen</h2><button id="screensClose" aria-label="Close">×</button></div>
@@ -144,6 +171,7 @@
     const text = document.querySelector('#text');
     const appsDialog = document.querySelector('#appsDialog');
     const appList = document.querySelector('#appList');
+    const moreDialog = document.querySelector('#moreDialog');
     const screensDialog = document.querySelector('#screensDialog');
     const screenList = document.querySelector('#screenList');
     const screenToggle = document.querySelector('#screenToggle');
@@ -380,6 +408,10 @@
     };
     document.querySelector('#appsClose').onclick = () => appsDialog.close();
     appsDialog.addEventListener('click', e => { if (e.target === appsDialog) appsDialog.close(); });
+    document.querySelector('#moreToggle').onclick = () => moreDialog.showModal();
+    document.querySelector('#moreClose').onclick = () => moreDialog.close();
+    moreDialog.addEventListener('click', e => { if (e.target === moreDialog) moreDialog.close(); });
+    document.querySelectorAll('[data-close-more]').forEach(button => button.addEventListener('click', () => moreDialog.close()));
     function renderApps(apps) {
       appList.replaceChildren();
       if (!apps.length) { appList.innerHTML = '<div class="empty">No open apps found</div>'; return; }
@@ -393,6 +425,7 @@
       }
     }
     screenToggle.onclick = () => {
+      moreDialog.close();
       screenList.innerHTML = '<div class="empty">Loading screens…</div>';
       screensDialog.showModal();
       send('list_displays');
@@ -413,7 +446,7 @@
         screenList.append(button);
       }
     }
-    modeToggle.onclick = () => modeDialog.showModal();
+    modeToggle.onclick = () => { moreDialog.close(); modeDialog.showModal(); };
     document.querySelector('#modeClose').onclick = () => modeDialog.close();
     modeDialog.addEventListener('click', e => { if (e.target === modeDialog) modeDialog.close(); });
     modeChoices.forEach(button => button.onclick = () => {
@@ -421,7 +454,7 @@
       setInputMode(button.dataset.modeChoice);
       modeDialog.close();
     });
-    document.querySelector('#zoomToggle').onclick = () => zoomDialog.showModal();
+    document.querySelector('#zoomToggle').onclick = () => { moreDialog.close(); zoomDialog.showModal(); };
     document.querySelector('#zoomClose').onclick = () => zoomDialog.close();
     zoomDialog.addEventListener('click', e => { if (e.target === zoomDialog) zoomDialog.close(); });
     pinchZoom.checked = pinchZoomEnabled;
