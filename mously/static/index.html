@@ -187,6 +187,8 @@
     let socket, reconnectTimer, volumeSyncTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
     let threeFingerGesture = null;
+    let scrollFrame = null, scrollDx = 0, scrollDy = 0, scrollLastFrame = 0, scrollLastInput = 0;
+    let scrollVelocityX = 0, scrollVelocityY = 0, scrollMomentumFrame = null, scrollMomentumLastFrame = 0;
     let inputMode = localStorage.getItem('mouslyPointerMode') === 'relative' ? 'relative' : 'absolute';
     let pinchZoomEnabled = localStorage.getItem('mouslyPinchZoom') !== 'false';
     let zoomSensitivity = ['gentle', 'normal', 'fast'].includes(localStorage.getItem('mouslyZoomSensitivity'))
@@ -249,6 +251,76 @@
     function midpoint(points) {
       const list = [...points.values()];
       return { x: list.reduce((n, p) => n + p.x, 0) / list.length, y: list.reduce((n, p) => n + p.y, 0) / list.length };
+    }
+    function beginScrollMotion() {
+      if (scrollFrame !== null) cancelAnimationFrame(scrollFrame);
+      if (scrollMomentumFrame !== null) cancelAnimationFrame(scrollMomentumFrame);
+      scrollFrame = null;
+      scrollMomentumFrame = null;
+      scrollDx = 0;
+      scrollDy = 0;
+      scrollLastFrame = 0;
+      scrollLastInput = 0;
+      scrollVelocityX = 0;
+      scrollVelocityY = 0;
+      scrollMomentumLastFrame = 0;
+    }
+    function flushScrollMotion(timestamp) {
+      scrollFrame = null;
+      if (scrollDx === 0 && scrollDy === 0) return;
+      const elapsed = scrollLastFrame ? Math.max(8, Math.min(32, timestamp - scrollLastFrame)) : 1000 / 60;
+      const speed = Math.hypot(scrollDx, scrollDy) / elapsed;
+      // Keep precise gestures nearly 1:1, then smoothly add gain as the
+      // fingers move faster, similar to macOS trackpad acceleration.
+      const gain = 1.05 + 1.45 * speed / (speed + 1.2);
+      const outputX = scrollDx * gain, outputY = scrollDy * gain;
+      const instantVelocityX = outputX / elapsed, instantVelocityY = outputY / elapsed;
+      scrollVelocityX = scrollVelocityX * 0.25 + instantVelocityX * 0.75;
+      scrollVelocityY = scrollVelocityY * 0.25 + instantVelocityY * 0.75;
+      send('scroll', {dx: outputX, dy: outputY});
+      scrollDx = 0;
+      scrollDy = 0;
+      scrollLastFrame = timestamp;
+    }
+    function queueScroll(dx, dy) {
+      scrollDx += dx;
+      scrollDy += dy;
+      scrollLastInput = performance.now();
+      if (scrollFrame === null) scrollFrame = requestAnimationFrame(flushScrollMotion);
+    }
+    function continueScrollMomentum(timestamp) {
+      const elapsed = Math.max(8, Math.min(32, timestamp - scrollMomentumLastFrame));
+      scrollMomentumLastFrame = timestamp;
+      const decay = Math.pow(0.90, elapsed / (1000 / 60));
+      scrollVelocityX *= decay;
+      scrollVelocityY *= decay;
+      send('scroll', {dx: scrollVelocityX * elapsed, dy: scrollVelocityY * elapsed});
+      if (Math.hypot(scrollVelocityX, scrollVelocityY) > 0.015) {
+        scrollMomentumFrame = requestAnimationFrame(continueScrollMomentum);
+      } else {
+        scrollMomentumFrame = null;
+        scrollVelocityX = 0;
+        scrollVelocityY = 0;
+      }
+    }
+    function finishScrollMotion(withMomentum = false) {
+      if (scrollFrame !== null) cancelAnimationFrame(scrollFrame);
+      if (scrollDx !== 0 || scrollDy !== 0) flushScrollMotion(performance.now());
+      scrollFrame = null;
+      scrollLastFrame = 0;
+      const recentInput = performance.now() - scrollLastInput < 70;
+      if (withMomentum && recentInput && Math.hypot(scrollVelocityX, scrollVelocityY) > 0.06) {
+        const speed = Math.hypot(scrollVelocityX, scrollVelocityY);
+        if (speed > 4) {
+          scrollVelocityX *= 4 / speed;
+          scrollVelocityY *= 4 / speed;
+        }
+        scrollMomentumLastFrame = performance.now();
+        scrollMomentumFrame = requestAnimationFrame(continueScrollMomentum);
+      } else {
+        scrollVelocityX = 0;
+        scrollVelocityY = 0;
+      }
     }
     function distanceBetween(points, pair) {
       const [a, b] = pair.map(id => points.get(id));
@@ -344,10 +416,15 @@
       touches.set(e.pointerId, {x: e.clientX, y: e.clientY});
       if (touches.size === 1) { startTime = performance.now(); totalMove = 0; maxTouches = 1; }
       maxTouches = Math.max(maxTouches, touches.size);
-      if (touches.size === 3 && pinchZoomEnabled) beginThreeFingerGesture();
+      if (touches.size === 2) beginScrollMotion();
+      else if (touches.size === 3 && pinchZoomEnabled) {
+        finishScrollMotion();
+        beginThreeFingerGesture();
+      }
       else if (touches.size > 3) {
         if (threeFingerGesture) send('magnify', {phase: 'cancelled', delta: 0});
         threeFingerGesture = null;
+        beginScrollMotion();
       }
       if (touches.size === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
     });
@@ -358,9 +435,9 @@
       const after = midpoint(touches);
       const dx = after.x - before.x, dy = after.y - before.y;
       totalMove += Math.abs(dx) + Math.abs(dy);
-      if (touches.size === 2) send('scroll', {dx, dy});
+      if (touches.size === 2) queueScroll(dx, dy);
       else if (touches.size === 3 && pinchZoomEnabled) handleThreeFingerGesture();
-      else if (touches.size > 1) send('scroll', {dx, dy});
+      else if (touches.size > 1) queueScroll(dx, dy);
       else if (maxTouches === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
       else if (maxTouches === 1) send('move', {dx, dy});
     });
@@ -369,8 +446,10 @@
       if (count === 3 && threeFingerGesture) {
         send('magnify', {phase: 'ended', delta: 0});
       }
+      if (count > 1 && !threeFingerGesture) finishScrollMotion(count === 2);
       touches.delete(e.pointerId);
       if (touches.size < 3) threeFingerGesture = null;
+      if (touches.size === 2) beginScrollMotion();
       if (count === 1 && maxTouches === 1 && performance.now() - startTime < 260 && totalMove < 12) {
         haptic();
         confirmPad(e);
@@ -383,8 +462,10 @@
       if (touches.size === 3 && threeFingerGesture) {
         send('magnify', {phase: 'cancelled', delta: 0});
       }
+      if (touches.size > 1 && !threeFingerGesture) finishScrollMotion();
       touches.delete(e.pointerId);
       if (touches.size < 3) threeFingerGesture = null;
+      if (touches.size === 2) beginScrollMotion();
       if (touches.size === 0) maxTouches = 0;
     });
     pad.addEventListener('contextmenu', e => e.preventDefault());

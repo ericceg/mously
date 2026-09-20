@@ -231,6 +231,8 @@ class MacController:
     def __init__(self) -> None:
         self._position = self._current_position()
         self._selected_display_id = self._default_display_id()
+        self._scroll_remainder_x = 0.0
+        self._scroll_remainder_y = 0.0
 
     @staticmethod
     def request_accessibility() -> bool:
@@ -279,14 +281,22 @@ class MacController:
                 time.sleep(0.06)
 
     def scroll(self, dx: float, dy: float) -> None:
-        # Pixel scrolling keeps two-finger movement smooth. Negation mirrors a
-        # direct-manipulation touch surface (drag content in the same direction).
+        # Quartz only accepts whole pixel deltas here. Carry the fractional
+        # portion into the next event so slow gestures remain continuous rather
+        # than repeatedly rounding to zero. Matching the touch direction gives
+        # the gesture the direct, content-under-your-fingers feel of iOS/iPadOS.
+        horizontal = dx * 1.8 + getattr(self, "_scroll_remainder_x", 0.0)
+        vertical = dy * 1.8 + getattr(self, "_scroll_remainder_y", 0.0)
+        horizontal_pixels = int(horizontal)
+        vertical_pixels = int(vertical)
+        self._scroll_remainder_x = horizontal - horizontal_pixels
+        self._scroll_remainder_y = vertical - vertical_pixels
         event = Quartz.CGEventCreateScrollWheelEvent(
             None,
             Quartz.kCGScrollEventUnitPixel,
             2,
-            int(-dy * 1.8),
-            int(-dx * 1.8),
+            vertical_pixels,
+            horizontal_pixels,
         )
         Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
 

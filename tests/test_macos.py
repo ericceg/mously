@@ -64,6 +64,24 @@ def test_double_click_posts_two_clicks_with_native_click_states(monkeypatch):
     assert all(event["button"] == macos.Quartz.kCGMouseButtonLeft for event in posted)
 
 
+def test_scroll_carries_fractional_pixels_between_events(monkeypatch):
+    events = []
+    controller = macos.MacController.__new__(macos.MacController)
+    monkeypatch.setattr(
+        macos.Quartz,
+        "CGEventCreateScrollWheelEvent",
+        lambda _source, _unit, _axes, vertical, horizontal: (vertical, horizontal),
+    )
+    monkeypatch.setattr(macos.Quartz, "CGEventPost", lambda _tap, event: events.append(event))
+
+    controller.scroll(0.3, 0.3)
+    controller.scroll(0.3, 0.3)
+
+    assert events == [(0, 0), (1, 1)]
+    assert controller._scroll_remainder_x == pytest.approx(0.08)
+    assert controller._scroll_remainder_y == pytest.approx(0.08)
+
+
 def test_magnify_posts_native_gesture_to_session(monkeypatch):
     event = object()
     posted = []
