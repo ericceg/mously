@@ -113,11 +113,13 @@
       const count = touches.size;
       touches.delete(e.pointerId);
       if (count === 1 && maxTouches === 1 && performance.now() - startTime < 260 && totalMove < 12) send('click', {button: 'left'});
-      if (count === 2 && maxTouches === 2 && performance.now() - startTime < 300 && totalMove < 14) send('click', {button: 'right'});
       if (touches.size === 0) maxTouches = 0;
     }
     pad.addEventListener('pointerup', endPointer);
-    pad.addEventListener('pointercancel', e => touches.delete(e.pointerId));
+    pad.addEventListener('pointercancel', e => {
+      touches.delete(e.pointerId);
+      if (touches.size === 0) maxTouches = 0;
+    });
     pad.addEventListener('contextmenu', e => e.preventDefault());
 
     document.querySelectorAll('[data-media]').forEach(b => b.onclick = () => send('media', {key: b.dataset.media}));

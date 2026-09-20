@@ -25,7 +25,7 @@ Use `uv run mously --port 9000` to choose another port.
 ## Controls
 
 - Drag one finger to move; tap to left-click.
-- Drag two fingers to scroll; tap two fingers or use the button to right-click.
+- Drag two fingers to scroll; use the dedicated button to right-click.
 - Media buttons control play/pause, volume, and mute.
 - **Apps** shows the Mac's currently open apps; tap one to bring it to the front.
 - Fullscreen sends `Control-Command-F`, the standard macOS fullscreen shortcut.
