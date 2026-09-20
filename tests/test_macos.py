@@ -1,3 +1,5 @@
+import pytest
+
 from mously import macos
 
 
@@ -62,13 +64,22 @@ def test_double_click_posts_two_clicks_with_native_click_states(monkeypatch):
     assert all(event["button"] == macos.Quartz.kCGMouseButtonLeft for event in posted)
 
 
-def test_zoom_uses_standard_browser_shortcuts(monkeypatch):
-    shortcuts = []
+def test_magnify_posts_native_gesture_to_session(monkeypatch):
+    event = object()
+    posted = []
     controller = macos.MacController.__new__(macos.MacController)
-    monkeypatch.setattr(controller, "_key_combo", lambda key_code, flags=0: shortcuts.append((key_code, flags)))
+    monkeypatch.setattr(macos, "_create_magnify_event", lambda delta, phase: (event, delta, phase))
+    monkeypatch.setattr(macos.Quartz, "CGEventPost", lambda tap, value: posted.append((tap, value)))
 
-    controller.zoom("in")
-    controller.zoom("out")
-    controller.zoom("reset")
+    controller.magnify(0.08, "changed")
 
-    assert shortcuts == [macos.ZOOM_KEYS["in"], macos.ZOOM_KEYS["out"], macos.ZOOM_KEYS["reset"]]
+    assert posted == [(macos.Quartz.kCGSessionEventTap, (event, 0.08, "changed"))]
+
+
+def test_synthetic_magnify_event_decodes_as_native_appkit_gesture():
+    event = macos._create_magnify_event(0.08, "changed")
+    native = macos.AppKit.NSEvent.eventWithCGEvent_(event)
+
+    assert native.type() == macos.AppKit.NSEventTypeMagnify
+    assert native.phase() == macos.AppKit.NSEventPhaseChanged
+    assert native.magnification() == pytest.approx(0.08)

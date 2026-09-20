@@ -20,7 +20,8 @@ def test_move_is_parsed_and_bounded():
         {"action": "move", "dx": "fast", "dy": 1},
         {"action": "point", "x": "left", "y": 0.5},
         {"action": "text", "text": "x" * 2001},
-        {"action": "zoom", "direction": "huge"},
+        {"action": "magnify", "phase": "huge", "delta": 0.1},
+        {"action": "magnify", "phase": "changed", "delta": "large"},
     ],
 )
 def test_invalid_commands_are_rejected(message):
@@ -34,12 +35,23 @@ def test_expected_controls_are_allowed():
     assert parse_command({"action": "list_apps"}).action == "list_apps"
     assert parse_command({"action": "list_displays"}).action == "list_displays"
     assert parse_command({"action": "activate_app", "pid": 123}).payload["pid"] == 123
-    assert parse_command({"action": "zoom", "direction": "in"}).payload["direction"] == "in"
+    assert parse_command({"action": "magnify", "phase": "changed", "delta": 0.1}).payload == {
+        "phase": "changed",
+        "delta": 0.1,
+    }
 
 
-@pytest.mark.parametrize("direction", ["in", "out", "reset"])
-def test_zoom_directions_are_allowed(direction):
-    assert parse_command({"action": "zoom", "direction": direction}).payload == {"direction": direction}
+@pytest.mark.parametrize("phase", ["began", "changed", "ended", "cancelled"])
+def test_magnify_phases_are_allowed(phase):
+    assert parse_command({"action": "magnify", "phase": phase, "delta": 0}).payload == {
+        "phase": phase,
+        "delta": 0.0,
+    }
+
+
+def test_magnification_delta_is_bounded():
+    assert parse_command({"action": "magnify", "phase": "changed", "delta": 3}).payload["delta"] == 0.5
+    assert parse_command({"action": "magnify", "phase": "changed", "delta": -3}).payload["delta"] == -0.5
 
 
 def test_click_count_defaults_to_one_and_allows_double_click():

@@ -22,7 +22,7 @@ ALLOWED_ACTIONS = {
     "key",
     "text",
     "media",
-    "zoom",
+    "magnify",
     "list_apps",
     "activate_app",
     "list_displays",
@@ -32,7 +32,7 @@ ALLOWED_ACTIONS = {
 ALLOWED_CLICKS = {"left", "right"}
 ALLOWED_KEYS = {"escape", "enter", "backspace", "space", "left", "right", "up", "down", "fullscreen"}
 ALLOWED_MEDIA = {"play_pause", "volume_up", "volume_down", "mute"}
-ALLOWED_ZOOM = {"in", "out", "reset"}
+ALLOWED_MAGNIFY_PHASES = {"began", "changed", "ended", "cancelled"}
 
 
 def parse_command(message: Any) -> Command:
@@ -61,8 +61,10 @@ def parse_command(message: Any) -> Command:
         raise ProtocolError("invalid key")
     elif action == "media" and payload.get("key") not in ALLOWED_MEDIA:
         raise ProtocolError("invalid media key")
-    elif action == "zoom" and payload.get("direction") not in ALLOWED_ZOOM:
-        raise ProtocolError("invalid zoom direction")
+    elif action == "magnify":
+        if payload.get("phase") not in ALLOWED_MAGNIFY_PHASES:
+            raise ProtocolError("invalid magnify phase")
+        payload["delta"] = _bounded_magnification(payload.get("delta"))
     elif action == "text":
         value = payload.get("text")
         if not isinstance(value, str) or len(value) > 2_000:
@@ -89,3 +91,9 @@ def _normalized_number(value: Any, name: str) -> float:
     if not isinstance(value, (int, float)) or isinstance(value, bool):
         raise ProtocolError(f"{name} must be a number")
     return max(0.0, min(1.0, float(value)))
+
+
+def _bounded_magnification(value: Any) -> float:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        raise ProtocolError("delta must be a number")
+    return max(-0.5, min(0.5, float(value)))

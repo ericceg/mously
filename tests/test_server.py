@@ -20,15 +20,15 @@ def test_remote_page_is_never_cached():
     asyncio.run(check())
 
 
-def test_zoom_is_dispatched_to_controller():
+def test_magnify_is_dispatched_to_controller():
     class RecordingController:
         def __init__(self):
-            self.directions = []
+            self.events = []
 
-        def zoom(self, direction):
-            self.directions.append(direction)
+        def magnify(self, delta, phase):
+            self.events.append((delta, phase))
 
     controller = RecordingController()
-    dispatch(controller, "zoom", {"direction": "in"})
+    dispatch(controller, "magnify", {"delta": 0.08, "phase": "changed"})
 
-    assert controller.directions == ["in"]
+    assert controller.events == [(0.08, "changed")]

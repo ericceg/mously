@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import ctypes
+import struct
 import time
 
 import AppKit
+import Foundation
 import Quartz
 
 
@@ -24,11 +27,133 @@ MEDIA_KEYS = {
     "play_pause": 16,
 }
 
-ZOOM_KEYS = {
-    "in": (24, Quartz.kCGEventFlagMaskCommand | Quartz.kCGEventFlagMaskShift),
-    "out": (27, Quartz.kCGEventFlagMaskCommand),
-    "reset": (29, Quartz.kCGEventFlagMaskCommand),
+MAGNIFY_PHASES = {
+    "began": 1,
+    "changed": 2,
+    "ended": 4,
+    "cancelled": 8,
 }
+
+
+class _DigitizerEventData(ctypes.Structure):
+    _fields_ = [
+        ("size", ctypes.c_uint32),
+        ("type", ctypes.c_uint32),
+        ("timestamp", ctypes.c_uint64),
+        ("options", ctypes.c_uint32),
+        ("position_x", ctypes.c_int32),
+        ("position_y", ctypes.c_int32),
+        ("position_z", ctypes.c_int32),
+        ("transducer_index", ctypes.c_uint32),
+        ("transducer_type", ctypes.c_uint32),
+        ("identity", ctypes.c_uint32),
+        ("event_mask", ctypes.c_uint32),
+        ("child_event_mask", ctypes.c_uint32),
+        ("button_mask", ctypes.c_uint32),
+        ("tip_pressure", ctypes.c_int32),
+        ("barrel_pressure", ctypes.c_int32),
+        ("twist", ctypes.c_int32),
+        ("orientation_type", ctypes.c_uint32),
+        ("orientation_quality", ctypes.c_int32),
+        ("orientation_density", ctypes.c_int32),
+        ("orientation_irregularity", ctypes.c_int32),
+        ("orientation_major_radius", ctypes.c_int32),
+        ("orientation_minor_radius", ctypes.c_int32),
+    ]
+
+
+class _VendorDefinedEventData(ctypes.Structure):
+    _fields_ = [
+        ("size", ctypes.c_uint32),
+        ("type", ctypes.c_uint32),
+        ("timestamp", ctypes.c_uint64),
+        ("options", ctypes.c_uint32),
+        ("usage_page", ctypes.c_uint16),
+        ("usage", ctypes.c_uint16),
+        ("version", ctypes.c_uint32),
+        ("length", ctypes.c_uint32),
+    ]
+
+
+class _SystemQueueElement(ctypes.Structure):
+    _fields_ = [
+        ("timestamp", ctypes.c_uint64),
+        ("device_id", ctypes.c_uint64),
+        ("options", ctypes.c_uint32),
+        ("event_count", ctypes.c_uint32),
+    ]
+
+
+def _structure_bytes(value: ctypes.Structure) -> bytes:
+    return ctypes.string_at(ctypes.addressof(value), ctypes.sizeof(value))
+
+
+def _gesture_uint32(field: int, value: int) -> bytes:
+    return struct.pack(">HBBI", 1, 0x40, field, value)
+
+
+def _gesture_float32(field: int, value: float) -> bytes:
+    return struct.pack(">HBBf", 1, 0xC0, field, value)
+
+
+def _create_magnify_event(delta: float, phase: str):
+    """Create the private CGEvent envelope macOS uses for trackpad gestures.
+
+    AppKit exposes magnify events publicly but Core Graphics has no public
+    system-wide constructor for them. This serialization format is private,
+    so it is intentionally isolated here and covered by an AppKit decode test.
+    Its envelope follows calftrail/Touch's ``tl_CGEventCreateFromGesture``
+    format, also used by Hammerspoon's gesture event implementation.
+    """
+    prototype = Quartz.CGEventCreate(None)
+    Quartz.CGEventSetType(prototype, AppKit.NSEventTypeGesture)
+    Quartz.CGEventSetFlags(prototype, 0x100)  # NX_NONCOALSESCEDMASK
+    timestamp = time.monotonic_ns()
+    Quartz.CGEventSetTimestamp(prototype, timestamp)
+
+    # The serialized prototype ends in a 24-byte empty field array. Replace
+    # it with an IOHID hand collection, the multitouch vendor token, and the
+    # fields describing this magnification delta.
+    blob = bytes(Quartz.CGEventCreateData(None, prototype))[:-24]
+    queue = _SystemQueueElement(timestamp=timestamp, options=2, event_count=2)
+    digitizer = _DigitizerEventData(
+        size=ctypes.sizeof(_DigitizerEventData),
+        type=11,
+        timestamp=timestamp,
+        options=2,
+        transducer_type=0x23,
+        orientation_type=2,
+    )
+    vendor_payload_size = 40
+    vendor = _VendorDefinedEventData(
+        size=ctypes.sizeof(_VendorDefinedEventData) + vendor_payload_size,
+        type=1,
+        timestamp=timestamp,
+        usage_page=0xFF00,
+        usage=0x1777,
+        version=1,
+        length=vendor_payload_size,
+    )
+    payload_size = (
+        ctypes.sizeof(queue)
+        + ctypes.sizeof(digitizer)
+        + ctypes.sizeof(vendor)
+        + vendor_payload_size
+    )
+    blob += struct.pack(">HBB", payload_size, 0x10, 0x6D)
+    blob += _structure_bytes(queue) + _structure_bytes(digitizer) + _structure_bytes(vendor)
+    blob += bytes(vendor_payload_size)
+    blob += _gesture_uint32(0x6E, 0x08)  # magnify subtype
+    blob += _gesture_uint32(0x6F, 0)
+    blob += _gesture_uint32(0x70, 0)
+    blob += _gesture_uint32(0x84, MAGNIFY_PHASES[phase])
+    blob += _gesture_uint32(0x85, 0)
+    blob += _gesture_float32(0x71, delta)
+    blob += _gesture_float32(0x8B, 0)
+    blob += _gesture_float32(0x8C, 0)
+
+    data = Foundation.NSData.dataWithBytes_length_(blob, len(blob))
+    return Quartz.CGEventCreateFromData(None, data)
 
 
 class MacController:
@@ -131,10 +256,12 @@ class MacController:
             )
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, event.CGEvent())
 
-    def zoom(self, direction: str) -> None:
-        """Send the standard page-zoom shortcut used by macOS browsers."""
-        key_code, flags = ZOOM_KEYS[direction]
-        self._key_combo(key_code, flags)
+    def magnify(self, delta: float, phase: str) -> None:
+        event = _create_magnify_event(delta, phase)
+        if event is not None:
+            # Session-level posting matches the route used by real trackpad
+            # gestures and targets the view beneath the pointer at Began.
+            Quartz.CGEventPost(Quartz.kCGSessionEventTap, event)
 
     def applications(self) -> list[dict[str, object]]:
         workspace = AppKit.NSWorkspace.sharedWorkspace()

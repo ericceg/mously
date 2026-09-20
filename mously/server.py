@@ -78,8 +78,8 @@ def dispatch(controller: MacController, action: str, payload: dict) -> None:
         controller.text(payload["text"])
     elif action == "media":
         controller.media(payload["key"])
-    elif action == "zoom":
-        controller.zoom(payload["direction"])
+    elif action == "magnify":
+        controller.magnify(payload["delta"], payload["phase"])
 
 
 def main() -> None:

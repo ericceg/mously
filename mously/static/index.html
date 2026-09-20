@@ -47,9 +47,6 @@
     .selectionList button.active::after { content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #63df91; transform: translateY(-50%); }
     .selectionList .empty { grid-column: 1 / -1; color: #858b96; text-align: center; padding: 24px; }
     #zoomToggle { grid-column: 1 / -1; }
-    .zoomControls { display: grid; grid-template-columns: repeat(3, 1fr); border-left: 1px solid #30343c; }
-    .zoomControls button { min-height: 64px; border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; font-size: 22px; }
-    .zoomControls button:nth-child(2) { font-size: 14px; }
     .zoomSettings { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; padding: 16px 14px; border-top: 1px solid #30343c; }
     .zoomSettings label { font-size: 14px; }
     .zoomSettings select { min-width: 104px; height: 38px; border: 1px solid #454a55; border-radius: 7px; padding: 0 28px 0 10px; background: #20232a; color: #f7f7f8; font: inherit; }
@@ -92,7 +89,7 @@
     <button id="keyboardToggle">Keyboard</button>
     <button data-key="fullscreen">Fullscreen</button>
     <button data-key="escape">Esc</button>
-    <button id="zoomToggle">Zoom</button>
+    <button id="zoomToggle">Pinch zoom</button>
   </section>
   <section id="keyboard">
     <input id="text" autocomplete="off" autocorrect="on" placeholder="Type on the Mac…">
@@ -114,12 +111,7 @@
     </div>
   </dialog>
   <dialog id="zoomDialog">
-    <div class="dialogHeader"><h2>Browser zoom</h2><button id="zoomClose" aria-label="Close">×</button></div>
-    <div class="zoomControls" aria-label="Browser zoom controls">
-      <button data-zoom="out" aria-label="Zoom out">−</button>
-      <button data-zoom="reset">Reset to 100%</button>
-      <button data-zoom="in" aria-label="Zoom in">＋</button>
-    </div>
+    <div class="dialogHeader"><h2>Trackpad pinch zoom</h2><button id="zoomClose" aria-label="Close">×</button></div>
     <div class="zoomSettings">
       <label for="pinchZoom">Pinch on trackpad</label>
       <label class="switch"><input id="pinchZoom" type="checkbox"><span aria-hidden="true"></span></label>
@@ -129,7 +121,7 @@
         <option value="normal">Normal</option>
         <option value="fast">Fast</option>
       </select>
-      <p class="zoomHint">Pinch apart to zoom in and together to zoom out. A parallel two-finger drag still scrolls.</p>
+      <p class="zoomHint">Place the pointer over what you want to inspect, then pinch apart to zoom in or together to zoom out. A parallel two-finger drag still scrolls.</p>
     </div>
   </dialog>
   <script>
@@ -209,9 +201,9 @@
       twoFingerGesture = {
         mode: 'pending',
         lastDistance: distance(touches),
+        initialDistance: distance(touches),
         scaleTravel: 0,
         panTravel: 0,
-        remainder: 0,
       };
     }
     function handleTwoFingerGesture(dx, dy) {
@@ -221,7 +213,8 @@
       }
       if (!twoFingerGesture) beginTwoFingerGesture();
       const nextDistance = distance(touches);
-      const scaleDelta = nextDistance - twoFingerGesture.lastDistance;
+      const previousDistance = twoFingerGesture.lastDistance;
+      const scaleDelta = nextDistance - previousDistance;
       twoFingerGesture.lastDistance = nextDistance;
       twoFingerGesture.scaleTravel += Math.abs(scaleDelta);
       twoFingerGesture.panTravel += Math.hypot(dx, dy);
@@ -229,7 +222,11 @@
       if (twoFingerGesture.mode === 'pending') {
         if (twoFingerGesture.scaleTravel >= 10 && twoFingerGesture.scaleTravel > twoFingerGesture.panTravel * 1.25) {
           twoFingerGesture.mode = 'zoom';
-          twoFingerGesture.remainder = 0;
+          send('magnify', {phase: 'began', delta: 0});
+          const gain = {gentle: 0.65, normal: 1, fast: 1.45}[zoomSensitivity];
+          const delta = (nextDistance / twoFingerGesture.initialDistance - 1) * gain;
+          send('magnify', {phase: 'changed', delta});
+          return;
         } else if (twoFingerGesture.panTravel >= 6 && twoFingerGesture.panTravel >= twoFingerGesture.scaleTravel * 0.8) {
           twoFingerGesture.mode = 'scroll';
         }
@@ -237,13 +234,8 @@
       if (twoFingerGesture.mode === 'scroll') {
         send('scroll', {dx, dy});
       } else if (twoFingerGesture.mode === 'zoom') {
-        const threshold = {gentle: 42, normal: 28, fast: 18}[zoomSensitivity];
-        twoFingerGesture.remainder += scaleDelta;
-        while (Math.abs(twoFingerGesture.remainder) >= threshold) {
-          const direction = twoFingerGesture.remainder > 0 ? 'in' : 'out';
-          send('zoom', {direction});
-          twoFingerGesture.remainder += twoFingerGesture.remainder > 0 ? -threshold : threshold;
-        }
+        const gain = {gentle: 0.65, normal: 1, fast: 1.45}[zoomSensitivity];
+        send('magnify', {phase: 'changed', delta: (nextDistance / previousDistance - 1) * gain});
       }
     }
     function normalizedPoint(event) {
@@ -271,6 +263,10 @@
       if (touches.size === 1) { startTime = performance.now(); totalMove = 0; maxTouches = 1; }
       maxTouches = Math.max(maxTouches, touches.size);
       if (touches.size === 2) beginTwoFingerGesture();
+      else if (touches.size > 2) {
+        if (twoFingerGesture?.mode === 'zoom') send('magnify', {phase: 'cancelled', delta: 0});
+        twoFingerGesture = null;
+      }
       if (touches.size === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
     });
     pad.addEventListener('pointermove', e => {
@@ -286,6 +282,9 @@
     });
     function endPointer(e) {
       const count = touches.size;
+      if (count === 2 && twoFingerGesture?.mode === 'zoom') {
+        send('magnify', {phase: 'ended', delta: 0});
+      }
       touches.delete(e.pointerId);
       if (touches.size < 2) twoFingerGesture = null;
       if (count === 1 && maxTouches === 1 && performance.now() - startTime < 260 && totalMove < 12) {
@@ -297,6 +296,9 @@
     }
     pad.addEventListener('pointerup', endPointer);
     pad.addEventListener('pointercancel', e => {
+      if (touches.size === 2 && twoFingerGesture?.mode === 'zoom') {
+        send('magnify', {phase: 'cancelled', delta: 0});
+      }
       touches.delete(e.pointerId);
       if (touches.size < 2) twoFingerGesture = null;
       if (touches.size === 0) maxTouches = 0;
@@ -362,10 +364,6 @@
     document.querySelector('#zoomToggle').onclick = () => zoomDialog.showModal();
     document.querySelector('#zoomClose').onclick = () => zoomDialog.close();
     zoomDialog.addEventListener('click', e => { if (e.target === zoomDialog) zoomDialog.close(); });
-    document.querySelectorAll('[data-zoom]').forEach(button => button.onclick = () => {
-      haptic();
-      send('zoom', {direction: button.dataset.zoom});
-    });
     pinchZoom.checked = pinchZoomEnabled;
     pad.dataset.pinchZoom = pinchZoomEnabled ? 'on' : 'off';
     pinchSensitivity.value = zoomSensitivity;
