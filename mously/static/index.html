@@ -6,96 +6,205 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Mously">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#0c0d10">
+  <meta id="themeColor" name="theme-color" content="#0c0d10">
   <link rel="apple-touch-icon" sizes="180x180" href="/mously-touch-icon.png">
   <link rel="icon" type="image/png" href="/mously-touch-icon.png">
   <title>Mously</title>
   <style>
-    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
+    :root {
+      color-scheme: dark;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+      --page: #0c0d10;
+      --surface: #15171c;
+      --surface-raised: #191c22;
+      --control: #1c1f25;
+      --control-active: #343944;
+      --field: #17191e;
+      --dialog: #14161b;
+      --select: #20232a;
+      --border: #30343c;
+      --border-strong: #3b404a;
+      --select-border: #454a55;
+      --text: #f7f7f8;
+      --control-text: #f5f5f6;
+      --muted: #9298a3;
+      --subtle: #858b96;
+      --pad-hint: #6f747f;
+      --pad-gradient: radial-gradient(circle at 50% 38%, #232730, #15171c 72%);
+      --accent: #3478f6;
+      --accent-soft: #72a9ff;
+      --accent-text: #dce9ff;
+      --success: #63df91;
+      --success-text: #b7ffcd;
+      --success-surface: #245235;
+      --zoom-surface: #31543c;
+      --zoom-active: #3c754e;
+      --switch-off: #3a3e47;
+      --popover: #0a0b0ef2;
+      --popover-text: #dbe9ff;
+      --overlay: #0009;
+      --shadow: #000a;
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --page: #f4f5f7;
+      --surface: #ffffff;
+      --surface-raised: #f0f2f5;
+      --control: #ffffff;
+      --control-active: #e1e5eb;
+      --field: #ffffff;
+      --dialog: #f8f9fb;
+      --select: #ffffff;
+      --border: #d4d8df;
+      --border-strong: #c6cbd4;
+      --select-border: #b9c0ca;
+      --text: #17191d;
+      --control-text: #1b1d22;
+      --muted: #626a76;
+      --subtle: #6e7682;
+      --pad-hint: #737b87;
+      --pad-gradient: radial-gradient(circle at 50% 38%, #ffffff, #edf0f4 72%);
+      --accent: #1769e0;
+      --accent-soft: #397fdc;
+      --accent-text: #ffffff;
+      --success: #168a45;
+      --success-text: #126b38;
+      --success-surface: #d9f2e2;
+      --zoom-surface: #dcefe3;
+      --zoom-active: #c2e5cf;
+      --switch-off: #aeb4be;
+      --popover: #20242bea;
+      --popover-text: #ffffff;
+      --overlay: #10131a66;
+      --shadow: #18202e3d;
+    }
+    :root[data-theme="oled"] {
+      color-scheme: dark;
+      --page: #000000;
+      --surface: #000000;
+      --surface-raised: #000000;
+      --control: #000000;
+      --control-active: #161616;
+      --field: #000000;
+      --dialog: #000000;
+      --select: #080808;
+      --border: #262626;
+      --border-strong: #303030;
+      --select-border: #3a3a3a;
+      --text: #f7f7f8;
+      --control-text: #f5f5f6;
+      --muted: #8c8c92;
+      --subtle: #7d7d83;
+      --pad-hint: #68686e;
+      --pad-gradient: #000000;
+      --accent: #1769e0;
+      --accent-soft: #4389ec;
+      --accent-text: #dce9ff;
+      --success: #42c978;
+      --success-text: #8eeeb1;
+      --success-surface: #092b16;
+      --zoom-surface: #092b16;
+      --zoom-active: #124222;
+      --switch-off: #333333;
+      --popover: #111111f2;
+      --popover-text: #ffffff;
+      --overlay: #000c;
+      --shadow: #000;
+    }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
     input[type="text"] { -webkit-user-select: text; user-select: text; }
-    html { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; }
-    body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #0c0d10; color: #f7f7f8; touch-action: none; padding: max(4px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto auto; gap: 0; }
+    html { margin: 0; height: 100%; overflow: hidden; background: var(--page); }
+    body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: var(--page); color: var(--text); touch-action: none; padding: max(4px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto auto; gap: 0; }
     header { display: flex; min-height: 34px; align-items: center; justify-content: space-between; padding: 0 14px; }
     h1 { font-size: 16px; margin: 0; letter-spacing: -.3px; }
     #status { display: flex; align-items: center; gap: 6px; color: #ffb84d; font-size: 12px; }
     #status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
-    #status.online { color: #63df91; }
-    #controlSurface { display: grid; grid-template-columns: minmax(0, 1fr) 64px; min-height: 150px; overflow: hidden; border-top: 1px solid #30343c; border-bottom: 1px solid #30343c; background: #15171c; }
-    #pad { position: relative; min-width: 0; min-height: 150px; border: 0; border-radius: 0; background: radial-gradient(circle at 50% 38%, #232730, #15171c 72%); overflow: hidden; }
-    #pad::after { white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: #6f747f; font-size: 14px; line-height: 1.7; pointer-events: none; }
+    #status.online { color: var(--success); }
+    #controlSurface { display: grid; grid-template-columns: minmax(0, 1fr) 64px; min-height: 150px; overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); }
+    #pad { position: relative; min-width: 0; min-height: 150px; border: 0; border-radius: 0; background: var(--pad-gradient); overflow: hidden; }
+    #pad::after { white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: var(--pad-hint); font-size: 14px; line-height: 1.7; pointer-events: none; }
     #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers scroll and pan"; }
     #pad[data-mode="relative"]::after { content: "Drag to move pointer\A Two fingers scroll and pan"; }
     #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers pan · three fingers pinch"; }
     #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "Drag to move pointer\A Two fingers pan · three fingers pinch"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
-    .volumeControl { position: relative; display: grid; grid-template-rows: 48px minmax(48px, 1fr) 48px; place-items: center; border-left: 1px solid #30343c; background: #191c22; transition: background 140ms, box-shadow 140ms; }
-    .volumeControl.zooming { background: #31543c; box-shadow: none; }
-    .volumeStep { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; background: #1c1f25; color: #f5f5f6; font-size: 22px; }
+    .volumeControl { position: relative; display: grid; grid-template-rows: 48px minmax(48px, 1fr) 48px; place-items: center; border-left: 1px solid var(--border); background: var(--surface-raised); transition: background 140ms, box-shadow 140ms; }
+    .volumeControl.zooming { background: var(--zoom-surface); box-shadow: none; }
+    .volumeStep { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; background: var(--control); color: var(--control-text); font-size: 22px; }
     .volumeStep:first-child { grid-row: 1; }
     .volumeStep:last-child { grid-row: 3; }
-    #volume { grid-row: 2; width: 100%; height: calc(100% - 12px); min-height: 48px; margin: 6px 0; writing-mode: vertical-lr; direction: rtl; accent-color: #72a9ff; cursor: ns-resize; touch-action: none; }
-    #volume::-webkit-slider-runnable-track { width: 5px; border-radius: 3px; background: #343944; }
-    #volume::-webkit-slider-thumb { width: 24px; height: 24px; margin-left: -9.5px; border: 2px solid #b9d3ff; border-radius: 50%; background: #72a9ff; box-shadow: 0 1px 5px #0009; }
-    #zoomSwipe { display: none; grid-row: 1 / -1; align-self: stretch; width: 100%; margin: 0; border: 0; border-radius: 0; background: #31543c; color: #b7ffcd; touch-action: none; cursor: ns-resize; }
+    #volume { grid-row: 2; width: 100%; height: calc(100% - 12px); min-height: 48px; margin: 6px 0; writing-mode: vertical-lr; direction: rtl; accent-color: var(--accent-soft); cursor: ns-resize; touch-action: none; }
+    #volume::-webkit-slider-runnable-track { width: 5px; border-radius: 3px; background: var(--control-active); }
+    #volume::-webkit-slider-thumb { width: 24px; height: 24px; margin-left: -9.5px; border: 2px solid var(--accent-text); border-radius: 50%; background: var(--accent-soft); box-shadow: 0 1px 5px var(--shadow); }
+    #zoomSwipe { display: none; grid-row: 1 / -1; align-self: stretch; width: 100%; margin: 0; border: 0; border-radius: 0; background: var(--zoom-surface); color: var(--success-text); touch-action: none; cursor: ns-resize; }
     #zoomSwipe::after { align-self: center; width: 100%; white-space: pre; text-align: center; font-size: 10px; font-weight: 750; line-height: 2.4; letter-spacing: .6px; }
-    #zoomSwipe[data-direction="in"], #zoomSwipe[data-direction="out"] { background: #3c754e; }
+    #zoomSwipe[data-direction="in"], #zoomSwipe[data-direction="out"] { background: var(--zoom-active); }
     .volumeControl.zooming .volumeStep, .volumeControl.zooming #volume { display: none; }
     .volumeControl.zooming #volumeValue { display: none; }
     .volumeControl.zooming #zoomSwipe { display: flex; }
     .volumeControl.zooming #zoomSwipe::after { content: "↑\A SWIPE\A ↓"; }
-    #volumeValue { position: absolute; right: 60px; z-index: 4; min-width: 46px; padding: 6px; border-radius: 8px; background: #0a0b0ef2; color: #dbe9ff; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; opacity: 0; transform: translateX(4px); transition: opacity 120ms, transform 120ms; }
+    #volumeValue { position: absolute; right: 60px; z-index: 4; min-width: 46px; padding: 6px; border-radius: 8px; background: var(--popover); color: var(--popover-text); text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; opacity: 0; transform: translateX(4px); transition: opacity 120ms, transform 120ms; }
     .volumeControl.adjusting #volumeValue { opacity: 1; transform: translateX(0); }
-    .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid #63df91; border-radius: 50%; background: #63df913d; color: #b7ffcd; box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
-    .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-left: 1px solid #30343c; }
+    .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid var(--success); border-radius: 50%; background: #63df913d; color: var(--success-text); box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
+    .row { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 0; border-left: 1px solid var(--border); }
     .row button { border-width: 0 1px 1px 0; }
-    button { min-height: 50px; border: 1px solid #353a44; border-radius: 0; background: #1c1f25; color: #f5f5f6; font: inherit; font-size: 16px; font-weight: 650; }
-    button:active { background: #343944; transform: scale(.98); }
-    button:disabled { opacity: .38; background: #15171c; }
+    button { min-height: 50px; border: 1px solid var(--border); border-radius: 0; background: var(--control); color: var(--control-text); font: inherit; font-size: 16px; font-weight: 650; }
+    button:active { background: var(--control-active); transform: scale(.98); }
+    button:disabled { opacity: .38; background: var(--surface); }
     button.confirmed { animation: button-confirmed 360ms ease-out; }
     .quickBar { grid-template-columns: 1.05fr 1.55fr 1fr 1fr 1fr; }
     .quickBar button { min-width: 0; min-height: 46px; padding: 0 8px; font-size: 13px; }
     .quickBar #appsToggle { font-size: 15px; }
-    .quickBar #zoomHold { color: #b7ffcd; touch-action: none; }
-    .quickBar #zoomHold.holding { background: #245235; box-shadow: inset 0 0 0 2px #63df91; transform: scale(.98); }
+    .quickBar #zoomHold { color: var(--success-text); touch-action: none; }
+    .quickBar #zoomHold.holding { background: var(--success-surface); box-shadow: inset 0 0 0 2px var(--success); transform: scale(.98); }
     .clicks button { min-height: 58px; font-size: 14px; }
     .media { grid-template-columns: 1fr 1.35fr 1fr; }
     .media button { min-height: 66px; font-size: 20px; }
-    .media button[data-media="play_pause"] { border-color: #568ce0; background: #3478f6; color: white; font-size: 23px; }
-    .buttonLabel { display: block; margin-top: 3px; color: #9298a3; font-size: 10px; font-weight: 550; letter-spacing: .2px; }
-    .media button[data-media="play_pause"] .buttonLabel { color: #dce9ff; }
-    #keyboard { display: none; grid-template-columns: 1fr auto; gap: 0; border-left: 1px solid #3b404a; border-bottom: 1px solid #3b404a; }
+    .media button[data-media="play_pause"] { border-color: var(--accent-soft); background: var(--accent); color: white; font-size: 23px; }
+    .buttonLabel { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 550; letter-spacing: .2px; }
+    .media button[data-media="play_pause"] .buttonLabel { color: var(--accent-text); }
+    #keyboard { display: none; grid-template-columns: 1fr auto; gap: 0; border-left: 1px solid var(--border-strong); border-bottom: 1px solid var(--border-strong); }
     #keyboard.open { display: grid; }
-    #text { min-width: 0; height: 50px; border: 0; border-right: 1px solid #3b404a; border-radius: 0; padding: 0 13px; background: #17191e; color: white; font-size: 16px; outline: none; }
-    #send { min-height: 50px; padding: 0 20px; border: 0; border-right: 1px solid #3b404a; color: #89b4ff; }
-    dialog { width: 100%; max-width: 460px; max-height: 78vh; margin: auto auto 0; border: 1px solid #383c45; border-bottom: 0; border-radius: 0; padding: 12px 0 0; background: #14161b; color: #f7f7f8; box-shadow: 0 20px 80px #000a; }
-    dialog::backdrop { background: #0009; backdrop-filter: blur(3px); }
+    #text { min-width: 0; height: 50px; border: 0; border-right: 1px solid var(--border-strong); border-radius: 0; padding: 0 13px; background: var(--field); color: var(--text); font-size: 16px; outline: none; }
+    #send { min-height: 50px; padding: 0 20px; border: 0; border-right: 1px solid var(--border-strong); color: var(--accent-soft); }
+    dialog { width: 100%; max-width: 460px; max-height: 82vh; margin: auto auto 0; border: 1px solid var(--border-strong); border-bottom: 0; border-radius: 0; padding: 12px 0 0; background: var(--dialog); color: var(--text); box-shadow: 0 20px 80px var(--shadow); }
+    dialog::backdrop { background: var(--overlay); backdrop-filter: blur(3px); }
     .dialogHeader { display: flex; align-items: center; justify-content: space-between; margin: 0; padding: 0 12px 12px; }
     .dialogHeader h2 { margin: 0; font-size: 18px; }
     .dialogHeader button { width: 40px; min-height: 40px; border-radius: 0; }
-    .selectionList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; overflow-y: auto; max-height: calc(78vh - 64px); border-left: 1px solid #30343c; border-bottom: 1px solid #30343c; }
-    .selectionList button { position: relative; min-height: 58px; padding: 8px 24px 8px 12px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; border: 0; border-right: 1px solid #30343c; border-top: 1px solid #30343c; }
-    .selectionList button.active::after { content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: #63df91; transform: translateY(-50%); }
-    .selectionList .empty { grid-column: 1 / -1; color: #858b96; text-align: center; padding: 24px; }
-    #zoomToggle { grid-column: 1 / -1; }
-    .occasionalGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; padding: 0; border-left: 1px solid #30343c; }
+    .selectionList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; overflow-y: auto; max-height: calc(82vh - 64px); border-left: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .selectionList button { position: relative; min-height: 58px; padding: 8px 24px 8px 12px; overflow: hidden; text-align: left; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; border: 0; border-right: 1px solid var(--border); border-top: 1px solid var(--border); }
+    .selectionList button.active::after { content: ""; position: absolute; right: 12px; top: 50%; width: 8px; height: 8px; border-radius: 50%; background: var(--success); transform: translateY(-50%); }
+    .selectionList .empty { grid-column: 1 / -1; color: var(--subtle); text-align: center; padding: 24px; }
+    .occasionalGrid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; padding: 0; border-left: 1px solid var(--border); }
     .occasionalGrid button { border-width: 1px 1px 0 0; }
     .occasionalGrid button { min-height: 58px; font-size: 14px; }
     .occasionalGrid .wide { grid-column: 1 / -1; }
-    .dialogSectionLabel { grid-column: 1 / -1; margin: 0; padding: 14px 12px 7px; color: #858b96; font-size: 11px; font-weight: 650; letter-spacing: .7px; text-transform: uppercase; }
-    .zoomSettings { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; padding: 16px 14px; border-top: 1px solid #30343c; }
-    .zoomSettings label { font-size: 14px; }
-    .zoomSettings select { min-width: 104px; height: 38px; border: 1px solid #454a55; border-radius: 7px; padding: 0 28px 0 10px; background: #20232a; color: #f7f7f8; font: inherit; }
+    .dialogSectionLabel { grid-column: 1 / -1; margin: 0; padding: 14px 12px 7px; color: var(--subtle); font-size: 11px; font-weight: 650; letter-spacing: .7px; text-transform: uppercase; }
+    .settingsContent { max-height: calc(82vh - 64px); overflow-y: auto; border-top: 1px solid var(--border); }
+    .settingsSection { padding: 14px; border-bottom: 1px solid var(--border); }
+    .settingsSection h3 { margin: 0 0 10px; color: var(--subtle); font-size: 11px; letter-spacing: .7px; text-transform: uppercase; }
+    .choiceGroup { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--border); }
+    .choiceGroup.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .choiceGroup button { position: relative; min-height: 58px; padding: 8px 6px; border: 0; border-right: 1px solid var(--border); font-size: 14px; }
+    .choiceGroup button:last-child { border-right: 0; }
+    .choiceGroup button.active { background: var(--control-active); box-shadow: inset 0 -3px var(--accent); }
+    .choiceGroup small { display: block; margin-top: 3px; color: var(--muted); font-size: 10px; font-weight: 500; }
+    .settingRow { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 14px; min-height: 50px; }
+    .settingRow + .settingRow { border-top: 1px solid var(--border); }
+    .settingRow label, .settingRow .settingLabel { font-size: 14px; }
+    .settingRow button { min-height: 38px; padding: 0 12px; border-radius: 7px; font-size: 13px; }
+    .settingRow select { min-width: 104px; height: 38px; border: 1px solid var(--select-border); border-radius: 7px; padding: 0 28px 0 10px; background: var(--select); color: var(--text); font: inherit; }
     .switch { position: relative; width: 48px; height: 28px; }
     .switch input { position: absolute; opacity: 0; pointer-events: none; }
-    .switch span { position: absolute; inset: 0; border-radius: 14px; background: #3a3e47; transition: background 160ms; }
+    .switch span { position: absolute; inset: 0; border-radius: 14px; background: var(--switch-off); transition: background 160ms; }
     .switch span::after { content: ""; position: absolute; width: 22px; height: 22px; left: 3px; top: 3px; border-radius: 50%; background: white; transition: transform 160ms; }
-    .switch input:checked + span { background: #3478f6; }
+    .switch input:checked + span { background: var(--accent); }
     .switch input:checked + span::after { transform: translateX(20px); }
-    .zoomHint { grid-column: 1 / -1; margin: -3px 0 0; color: #9298a3; font-size: 12px; line-height: 1.45; }
+    .zoomHint { margin: 9px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
     @keyframes tap-ripple { from { opacity: .95; transform: scale(.3); } to { opacity: 0; transform: scale(1.45); } }
-    @keyframes pad-confirmed { 0%, 100% { box-shadow: none; } 35% { box-shadow: inset 0 0 0 2px #72a9ff, inset 0 0 28px #4e91ff1f; } }
-    @keyframes button-confirmed { 0%, 100% { background: #1c1f25; border-color: #30343c; } 35% { background: #294330; border-color: #63df91; box-shadow: 0 0 0 3px #63df9124; } }
+    @keyframes pad-confirmed { 0%, 100% { box-shadow: none; } 35% { box-shadow: inset 0 0 0 2px var(--accent-soft), inset 0 0 28px #4e91ff1f; } }
+    @keyframes button-confirmed { 0%, 100% { background: var(--control); border-color: var(--border); } 35% { background: var(--success-surface); border-color: var(--success); box-shadow: 0 0 0 3px #63df9124; } }
     @media (prefers-reduced-motion: reduce) { .tapRipple, #pad.confirmed, button.confirmed { animation-duration: 80ms; } }
     @media (max-height: 600px) {
       body { padding-top: max(4px, env(safe-area-inset-top)); }
@@ -146,41 +255,58 @@
     <div id="appList" class="selectionList"><div class="empty">Loading open apps…</div></div>
   </dialog>
   <dialog id="moreDialog">
-    <div class="dialogHeader"><h2>More controls</h2><button id="moreClose" aria-label="Close">×</button></div>
+    <div class="dialogHeader"><h2>More</h2><button id="moreClose" aria-label="Close">×</button></div>
     <div class="occasionalGrid">
-      <div class="dialogSectionLabel">Pointer settings</div>
-      <button id="modeToggle">Absolute</button>
-      <button id="screenToggle">Screen</button>
-      <button id="zoomToggle" class="wide">Pinch zoom</button>
+      <div class="dialogSectionLabel">Preferences</div>
+      <button id="settingsToggle" class="wide">⚙︎ Settings</button>
       <div class="dialogSectionLabel">Occasional keys</div>
       <button data-key="fullscreen" data-close-more>Fullscreen</button>
       <button data-key="escape" data-close-more>Esc</button>
     </div>
   </dialog>
+  <dialog id="settingsDialog">
+    <div class="dialogHeader"><h2>Settings</h2><button id="settingsClose" aria-label="Close">×</button></div>
+    <div class="settingsContent">
+      <section class="settingsSection" aria-labelledby="appearanceHeading">
+        <h3 id="appearanceHeading">Appearance</h3>
+        <div class="choiceGroup" id="themeChoices">
+          <button data-theme-choice="default">Default<small>Original dark</small></button>
+          <button data-theme-choice="light">Light<small>Bright</small></button>
+          <button data-theme-choice="oled">OLED<small>True black</small></button>
+        </div>
+      </section>
+      <section class="settingsSection" aria-labelledby="pointerHeading">
+        <h3 id="pointerHeading">Pointer</h3>
+        <div class="choiceGroup two" id="modeChoices">
+          <button data-mode-choice="absolute">Absolute<small>Matches screen</small></button>
+          <button data-mode-choice="relative">Relative<small>Trackpad drag</small></button>
+        </div>
+        <div class="settingRow">
+          <span class="settingLabel">Mapped screen</span>
+          <button id="screenToggle">Choose…</button>
+        </div>
+      </section>
+      <section class="settingsSection" aria-labelledby="pinchHeading">
+        <h3 id="pinchHeading">Pinch zoom</h3>
+        <div class="settingRow">
+          <label for="pinchZoom">Three-finger pinch</label>
+          <label class="switch"><input id="pinchZoom" type="checkbox"><span aria-hidden="true"></span></label>
+        </div>
+        <div class="settingRow">
+          <label for="pinchSensitivity">Sensitivity</label>
+          <select id="pinchSensitivity">
+            <option value="gentle">Gentle</option>
+            <option value="normal">Normal</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
+        <p class="zoomHint">Keep one finger planted, then pinch with the other two. Two fingers pan or scroll.</p>
+      </section>
+    </div>
+  </dialog>
   <dialog id="screensDialog">
-    <div class="dialogHeader"><h2>Map to screen</h2><button id="screensClose" aria-label="Close">×</button></div>
+    <div class="dialogHeader"><h2>Map to screen</h2><button id="screensClose" aria-label="Back">‹</button></div>
     <div id="screenList" class="selectionList"><div class="empty">Loading screens…</div></div>
-  </dialog>
-  <dialog id="modeDialog">
-    <div class="dialogHeader"><h2>Pointer mode</h2><button id="modeClose" aria-label="Close">×</button></div>
-    <div id="modeList" class="selectionList">
-      <button data-mode-choice="absolute">Absolute · phone matches screen</button>
-      <button data-mode-choice="relative">Relative · drag like a trackpad</button>
-    </div>
-  </dialog>
-  <dialog id="zoomDialog">
-    <div class="dialogHeader"><h2>Trackpad pinch zoom</h2><button id="zoomClose" aria-label="Close">×</button></div>
-    <div class="zoomSettings">
-      <label for="pinchZoom">Three-finger pinch</label>
-      <label class="switch"><input id="pinchZoom" type="checkbox"><span aria-hidden="true"></span></label>
-      <label for="pinchSensitivity">Pinch sensitivity</label>
-      <select id="pinchSensitivity">
-        <option value="gentle">Gentle</option>
-        <option value="normal">Normal</option>
-        <option value="fast">Fast</option>
-      </select>
-      <p class="zoomHint">Keep one finger planted, then pinch with the other two. With two fingers, drag in any direction to pan or scroll. In Absolute mode, zoom centers between the pinching fingers.</p>
-    </div>
   </dialog>
   <script>
     const pad = document.querySelector('#pad');
@@ -190,13 +316,13 @@
     const appsDialog = document.querySelector('#appsDialog');
     const appList = document.querySelector('#appList');
     const moreDialog = document.querySelector('#moreDialog');
+    const settingsDialog = document.querySelector('#settingsDialog');
     const screensDialog = document.querySelector('#screensDialog');
     const screenList = document.querySelector('#screenList');
     const screenToggle = document.querySelector('#screenToggle');
-    const modeDialog = document.querySelector('#modeDialog');
-    const modeToggle = document.querySelector('#modeToggle');
     const modeChoices = document.querySelectorAll('[data-mode-choice]');
-    const zoomDialog = document.querySelector('#zoomDialog');
+    const themeChoices = document.querySelectorAll('[data-theme-choice]');
+    const themeColor = document.querySelector('#themeColor');
     const pinchZoom = document.querySelector('#pinchZoom');
     const pinchSensitivity = document.querySelector('#pinchSensitivity');
     const zoomHold = document.querySelector('#zoomHold');
@@ -213,6 +339,8 @@
     let scrollFrame = null, scrollDx = 0, scrollDy = 0, scrollLastFrame = 0, scrollLastInput = 0;
     let scrollVelocityX = 0, scrollVelocityY = 0, scrollMomentumFrame = null, scrollMomentumLastFrame = 0;
     let inputMode = localStorage.getItem('mouslyPointerMode') === 'absolute' ? 'absolute' : 'relative';
+    let appearance = ['default', 'light', 'oled'].includes(localStorage.getItem('mouslyAppearance'))
+      ? localStorage.getItem('mouslyAppearance') : 'default';
     let pinchZoomEnabled = localStorage.getItem('mouslyPinchZoom') !== 'false';
     let zoomSensitivity = ['gentle', 'normal', 'fast'].includes(localStorage.getItem('mouslyZoomSensitivity'))
       ? localStorage.getItem('mouslyZoomSensitivity') : 'normal';
@@ -222,6 +350,19 @@
       localStorage.setItem(pairingTokenKey, fragmentToken);
     }
     const pairingToken = fragmentToken || localStorage.getItem(pairingTokenKey);
+
+    function setAppearance(theme) {
+      appearance = ['light', 'oled'].includes(theme) ? theme : 'default';
+      localStorage.setItem('mouslyAppearance', appearance);
+      if (appearance === 'default') delete document.documentElement.dataset.theme;
+      else document.documentElement.dataset.theme = appearance;
+      themeColor.content = {default: '#0c0d10', light: '#f4f5f7', oled: '#000000'}[appearance];
+      themeChoices.forEach(button => {
+        const active = button.dataset.themeChoice === appearance;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+    }
 
     function connect() {
       if (!pairingToken) {
@@ -249,7 +390,7 @@
         if (message.type === 'volume' && !volumeAdjusting && !holdZoomActive) setVolumeDisplay(message.value * 100);
         if (message.type === 'display_selected') {
           renderDisplays(message.displays);
-          if (message.ok) screensDialog.close();
+          if (message.ok) returnToSettings();
         }
       };
       socket.onclose = event => {
@@ -419,10 +560,12 @@
       inputMode = mode === 'relative' ? 'relative' : 'absolute';
       localStorage.setItem('mouslyPointerMode', inputMode);
       pad.dataset.mode = inputMode;
-      modeToggle.textContent = inputMode === 'absolute' ? 'Absolute' : 'Relative';
-      modeToggle.title = inputMode === 'absolute' ? 'Phone position matches the selected screen' : 'Drag like a conventional trackpad';
       screenToggle.disabled = inputMode !== 'absolute';
-      modeChoices.forEach(button => button.classList.toggle('active', button.dataset.modeChoice === inputMode));
+      modeChoices.forEach(button => {
+        const active = button.dataset.modeChoice === inputMode;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
     }
 
     function setVolumeDisplay(value) {
@@ -629,6 +772,12 @@
     document.querySelector('#moreClose').onclick = () => moreDialog.close();
     moreDialog.addEventListener('click', e => { if (e.target === moreDialog) moreDialog.close(); });
     document.querySelectorAll('[data-close-more]').forEach(button => button.addEventListener('click', () => moreDialog.close()));
+    document.querySelector('#settingsToggle').onclick = () => {
+      moreDialog.close();
+      settingsDialog.showModal();
+    };
+    document.querySelector('#settingsClose').onclick = () => settingsDialog.close();
+    settingsDialog.addEventListener('click', e => { if (e.target === settingsDialog) settingsDialog.close(); });
     function renderApps(apps) {
       appList.replaceChildren();
       if (!apps.length) { appList.innerHTML = '<div class="empty">No open apps found</div>'; return; }
@@ -642,13 +791,18 @@
       }
     }
     screenToggle.onclick = () => {
-      moreDialog.close();
+      settingsDialog.close();
       screenList.innerHTML = '<div class="empty">Loading screens…</div>';
       screensDialog.showModal();
       send('list_displays');
     };
-    document.querySelector('#screensClose').onclick = () => screensDialog.close();
-    screensDialog.addEventListener('click', e => { if (e.target === screensDialog) screensDialog.close(); });
+    function returnToSettings() {
+      screensDialog.close();
+      settingsDialog.showModal();
+    }
+    document.querySelector('#screensClose').onclick = returnToSettings;
+    screensDialog.addEventListener('click', e => { if (e.target === screensDialog) returnToSettings(); });
+    screensDialog.addEventListener('cancel', e => { e.preventDefault(); returnToSettings(); });
     function renderDisplays(displays) {
       screenList.replaceChildren();
       const selected = displays.find(display => display.selected);
@@ -663,17 +817,14 @@
         screenList.append(button);
       }
     }
-    modeToggle.onclick = () => { moreDialog.close(); modeDialog.showModal(); };
-    document.querySelector('#modeClose').onclick = () => modeDialog.close();
-    modeDialog.addEventListener('click', e => { if (e.target === modeDialog) modeDialog.close(); });
     modeChoices.forEach(button => button.onclick = () => {
       haptic();
       setInputMode(button.dataset.modeChoice);
-      modeDialog.close();
     });
-    document.querySelector('#zoomToggle').onclick = () => { moreDialog.close(); zoomDialog.showModal(); };
-    document.querySelector('#zoomClose').onclick = () => zoomDialog.close();
-    zoomDialog.addEventListener('click', e => { if (e.target === zoomDialog) zoomDialog.close(); });
+    themeChoices.forEach(button => button.onclick = () => {
+      haptic();
+      setAppearance(button.dataset.themeChoice);
+    });
     pinchZoom.checked = pinchZoomEnabled;
     pad.dataset.pinchZoom = pinchZoomEnabled ? 'on' : 'off';
     pinchSensitivity.value = zoomSensitivity;
@@ -689,6 +840,7 @@
     function sendText() { if (text.value) { send('text', {text: text.value}); text.value = ''; } }
     document.querySelector('#send').onclick = sendText;
     text.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendText(); send('key', {key: 'enter'}); } });
+    setAppearance(appearance);
     setInputMode(inputMode);
     connect();
   </script>

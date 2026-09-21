@@ -103,6 +103,14 @@ def test_remote_page_is_never_cached():
             assert "sessionStorage" not in page
             assert "history.replaceState" not in page
             assert "=== 'absolute' ? 'absolute' : 'relative'" in page
+            assert 'id="settingsDialog"' in page
+            assert 'data-theme-choice="default"' in page
+            assert 'data-theme-choice="light"' in page
+            assert 'data-theme-choice="oled"' in page
+            assert "--page: #000000" in page
+            assert "localStorage.setItem('mouslyAppearance', appearance)" in page
+            assert 'id="modeChoices"' in page
+            assert 'id="pinchZoom"' in page
             assert 'rel="apple-touch-icon"' in page
             assert 'href="/mously-touch-icon.png"' in page
 
