@@ -9,7 +9,8 @@
   <title>Mously</title>
   <style>
     :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    input[type="text"] { -webkit-user-select: text; user-select: text; }
     html { margin: 0; height: 100%; overflow: hidden; background: #0c0d10; }
     body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #0c0d10; color: #f7f7f8; touch-action: none; padding: max(4px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto auto; gap: 0; }
     header { display: flex; min-height: 34px; align-items: center; justify-content: space-between; padding: 0 14px; }
@@ -25,11 +26,21 @@
     #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers pan · three fingers pinch"; }
     #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "Drag to move pointer\A Two fingers pan · three fingers pinch"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
-    .volumeControl { position: relative; display: grid; grid-template-rows: 48px minmax(48px, 1fr) 48px; place-items: center; border-left: 1px solid #30343c; background: #191c22; }
+    .volumeControl { position: relative; display: grid; grid-template-rows: 48px minmax(48px, 1fr) 48px; place-items: center; border-left: 1px solid #30343c; background: #191c22; transition: background 140ms, box-shadow 140ms; }
+    .volumeControl.zooming { background: #31543c; box-shadow: none; }
     .volumeStep { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; background: #1c1f25; color: #f5f5f6; font-size: 22px; }
-    #volume { width: 100%; height: calc(100% - 12px); min-height: 48px; margin: 6px 0; writing-mode: vertical-lr; direction: rtl; accent-color: #72a9ff; cursor: ns-resize; touch-action: none; }
+    .volumeStep:first-child { grid-row: 1; }
+    .volumeStep:last-child { grid-row: 3; }
+    #volume { grid-row: 2; width: 100%; height: calc(100% - 12px); min-height: 48px; margin: 6px 0; writing-mode: vertical-lr; direction: rtl; accent-color: #72a9ff; cursor: ns-resize; touch-action: none; }
     #volume::-webkit-slider-runnable-track { width: 5px; border-radius: 3px; background: #343944; }
     #volume::-webkit-slider-thumb { width: 24px; height: 24px; margin-left: -9.5px; border: 2px solid #b9d3ff; border-radius: 50%; background: #72a9ff; box-shadow: 0 1px 5px #0009; }
+    #zoomSwipe { display: none; grid-row: 1 / -1; align-self: stretch; width: 100%; margin: 0; border: 0; border-radius: 0; background: #31543c; color: #b7ffcd; touch-action: none; cursor: ns-resize; }
+    #zoomSwipe::after { align-self: center; width: 100%; white-space: pre; text-align: center; font-size: 10px; font-weight: 750; line-height: 2.4; letter-spacing: .6px; }
+    #zoomSwipe[data-direction="in"], #zoomSwipe[data-direction="out"] { background: #3c754e; }
+    .volumeControl.zooming .volumeStep, .volumeControl.zooming #volume { display: none; }
+    .volumeControl.zooming #volumeValue { display: none; }
+    .volumeControl.zooming #zoomSwipe { display: flex; }
+    .volumeControl.zooming #zoomSwipe::after { content: "↑\A SWIPE\A ↓"; }
     #volumeValue { position: absolute; right: 60px; z-index: 4; min-width: 46px; padding: 6px; border-radius: 8px; background: #0a0b0ef2; color: #dbe9ff; text-align: center; font-size: 12px; font-variant-numeric: tabular-nums; pointer-events: none; opacity: 0; transform: translateX(4px); transition: opacity 120ms, transform 120ms; }
     .volumeControl.adjusting #volumeValue { opacity: 1; transform: translateX(0); }
     .tapRipple { position: absolute; z-index: 2; display: grid; place-items: center; width: 64px; height: 64px; margin: -32px 0 0 -32px; border: 3px solid #63df91; border-radius: 50%; background: #63df913d; color: #b7ffcd; box-shadow: 0 0 20px #63df9166; font-size: 22px; font-weight: 800; pointer-events: none; animation: tap-ripple 420ms ease-out forwards; }
@@ -39,9 +50,11 @@
     button:active { background: #343944; transform: scale(.98); }
     button:disabled { opacity: .38; background: #15171c; }
     button.confirmed { animation: button-confirmed 360ms ease-out; }
-    .quickBar { grid-template-columns: 1.7fr 1fr 1fr 1fr; }
+    .quickBar { grid-template-columns: 1.05fr 1.55fr 1fr 1fr 1fr; }
     .quickBar button { min-width: 0; min-height: 46px; padding: 0 8px; font-size: 13px; }
     .quickBar #appsToggle { font-size: 15px; }
+    .quickBar #zoomHold { color: #b7ffcd; touch-action: none; }
+    .quickBar #zoomHold.holding { background: #245235; box-shadow: inset 0 0 0 2px #63df91; transform: scale(.98); }
     .clicks button { min-height: 58px; font-size: 14px; }
     .media { grid-template-columns: 1fr 1.35fr 1fr; }
     .media button { min-height: 66px; font-size: 20px; }
@@ -95,6 +108,7 @@
 <body>
   <header><h1>Mously</h1><span id="status">Connecting…</span></header>
   <section class="row quickBar" aria-label="Quick actions">
+    <button id="zoomHold" aria-label="Hold to show the zoom swipe area" aria-pressed="false">Hold Zoom</button>
     <button id="appsToggle">▦ Apps</button>
     <button data-media="mute" aria-label="Mute">Mute</button>
     <button id="keyboardToggle">Keyboard</button>
@@ -105,6 +119,7 @@
     <div class="volumeControl">
       <button class="volumeStep" data-media="volume_up" aria-label="Volume up">＋</button>
       <input id="volume" type="range" min="0" max="100" value="50" step="1" aria-label="Output volume" aria-orientation="vertical">
+      <div id="zoomSwipe" role="region" aria-label="Swipe up to zoom in or down to zoom out" aria-hidden="true"></div>
       <output id="volumeValue" for="volume">50%</output>
       <button class="volumeStep" data-media="volume_down" aria-label="Volume down">−</button>
     </div>
@@ -181,12 +196,17 @@
     const zoomDialog = document.querySelector('#zoomDialog');
     const pinchZoom = document.querySelector('#pinchZoom');
     const pinchSensitivity = document.querySelector('#pinchSensitivity');
+    const zoomHold = document.querySelector('#zoomHold');
+    const zoomSwipe = document.querySelector('#zoomSwipe');
     const volume = document.querySelector('#volume');
     const volumeControl = document.querySelector('.volumeControl');
     const volumeValue = document.querySelector('#volumeValue');
     let socket, reconnectTimer, volumeSyncTimer;
     let touches = new Map(), startTime = 0, totalMove = 0, maxTouches = 0;
     let threeFingerGesture = null;
+    let holdZoomActive = false, holdZoomPointerId = null, volumeBeforeZoom = 50;
+    let zoomSwipePointerId = null, zoomSwipeLastY = 0, zoomSwipeFeedbackTimer = null;
+    let volumePointerDown = false, suppressVolumeUntilPointerUp = false;
     let scrollFrame = null, scrollDx = 0, scrollDy = 0, scrollLastFrame = 0, scrollLastInput = 0;
     let scrollVelocityX = 0, scrollVelocityY = 0, scrollMomentumFrame = null, scrollMomentumLastFrame = 0;
     let inputMode = localStorage.getItem('mouslyPointerMode') === 'relative' ? 'relative' : 'absolute';
@@ -209,7 +229,7 @@
         if (message.type === 'apps') renderApps(message.apps);
         if (message.type === 'activated' && message.ok) appsDialog.close();
         if (message.type === 'displays') renderDisplays(message.displays);
-        if (message.type === 'volume' && !volumeAdjusting) setVolumeDisplay(message.value * 100);
+        if (message.type === 'volume' && !volumeAdjusting && !holdZoomActive) setVolumeDisplay(message.value * 100);
         if (message.type === 'display_selected') {
           renderDisplays(message.displays);
           if (message.ok) screensDialog.close();
@@ -358,8 +378,10 @@
       const previousDistance = threeFingerGesture.lastDistance;
       threeFingerGesture.lastDistance = nextDistance;
       if (previousDistance === 0 || nextDistance === previousDistance) return;
-      const gain = {gentle: 0.65, normal: 1, fast: 1.45}[zoomSensitivity];
-      send('magnify', {phase: 'changed', delta: (nextDistance / previousDistance - 1) * gain});
+      send('magnify', {phase: 'changed', delta: (nextDistance / previousDistance - 1) * zoomGain()});
+    }
+    function zoomGain() {
+      return {gentle: 0.65, normal: 1, fast: 1.45}[zoomSensitivity];
     }
     function normalizedPoint(event) {
       const bounds = pad.getBoundingClientRect();
@@ -388,8 +410,50 @@
       volume.setAttribute('aria-valuetext', `${rounded} percent`);
       volumeValue.style.top = `clamp(8px, calc(${100 - rounded}% - 13px), calc(100% - 34px))`;
     }
+    function beginHoldZoom(event) {
+      if (holdZoomActive || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      event.preventDefault();
+      holdZoomActive = true;
+      holdZoomPointerId = event.pointerId ?? null;
+      if (holdZoomPointerId !== null) zoomHold.setPointerCapture(holdZoomPointerId);
+      if (threeFingerGesture) {
+        send('magnify', {phase: 'cancelled', delta: 0});
+        threeFingerGesture = null;
+      }
+      volumeBeforeZoom = Number(volume.value);
+      if (volumeFrame !== null) cancelAnimationFrame(volumeFrame);
+      volumeFrame = null;
+      volumeAdjusting = false;
+      zoomHold.classList.add('holding');
+      zoomHold.setAttribute('aria-pressed', 'true');
+      volumeControl.classList.remove('adjusting');
+      volumeControl.classList.add('zooming');
+      zoomSwipe.setAttribute('aria-hidden', 'false');
+      haptic();
+      send('magnify', {phase: 'began', delta: 0});
+    }
+    function finishHoldZoom(cancelled = false) {
+      if (!holdZoomActive) return;
+      holdZoomActive = false;
+      holdZoomPointerId = null;
+      suppressVolumeUntilPointerUp = volumePointerDown;
+      send('magnify', {phase: cancelled ? 'cancelled' : 'ended', delta: 0});
+      zoomHold.classList.remove('holding');
+      zoomHold.setAttribute('aria-pressed', 'false');
+      volumeControl.classList.remove('zooming');
+      zoomSwipe.setAttribute('aria-hidden', 'true');
+      zoomSwipePointerId = null;
+      zoomSwipe.removeAttribute('data-direction');
+      clearTimeout(zoomSwipeFeedbackTimer);
+      setVolumeDisplay(volumeBeforeZoom);
+      send('get_volume');
+    }
     let volumeFrame = null, volumeAdjusting = false;
     volume.addEventListener('input', () => {
+      if (suppressVolumeUntilPointerUp) {
+        setVolumeDisplay(volumeBeforeZoom);
+        return;
+      }
       volumeAdjusting = true;
       setVolumeDisplay(Number(volume.value));
       volumeControl.classList.add('adjusting');
@@ -399,6 +463,7 @@
       });
     });
     volume.addEventListener('change', () => {
+      if (holdZoomActive || suppressVolumeUntilPointerUp) return;
       send('set_volume', {value: Number(volume.value) / 100});
       setTimeout(() => {
         volumeAdjusting = false;
@@ -407,8 +472,56 @@
       setTimeout(() => volumeControl.classList.remove('adjusting'), 450);
     });
     volume.addEventListener('pointerdown', () => {
+      volumePointerDown = true;
+      if (holdZoomActive) return;
       volumeAdjusting = true;
       volumeControl.classList.add('adjusting');
+    });
+    function endVolumePointer() {
+      volumePointerDown = false;
+      if (suppressVolumeUntilPointerUp) send('get_volume');
+      suppressVolumeUntilPointerUp = false;
+    }
+    volume.addEventListener('pointerup', endVolumePointer);
+    volume.addEventListener('pointercancel', endVolumePointer);
+
+    zoomSwipe.addEventListener('pointerdown', event => {
+      if (!holdZoomActive || zoomSwipePointerId !== null) return;
+      event.preventDefault();
+      zoomSwipePointerId = event.pointerId;
+      zoomSwipeLastY = event.clientY;
+      zoomSwipe.setPointerCapture(event.pointerId);
+    });
+    zoomSwipe.addEventListener('pointermove', event => {
+      if (!holdZoomActive || event.pointerId !== zoomSwipePointerId) return;
+      const distance = zoomSwipeLastY - event.clientY;
+      zoomSwipeLastY = event.clientY;
+      if (distance === 0) return;
+      const delta = distance / Math.max(160, zoomSwipe.clientHeight) * zoomGain();
+      send('magnify', {phase: 'changed', delta});
+      zoomSwipe.dataset.direction = delta > 0 ? 'in' : 'out';
+      clearTimeout(zoomSwipeFeedbackTimer);
+      zoomSwipeFeedbackTimer = setTimeout(() => zoomSwipe.removeAttribute('data-direction'), 100);
+    });
+    function endZoomSwipe(event) {
+      if (event.pointerId === zoomSwipePointerId) zoomSwipePointerId = null;
+    }
+    zoomSwipe.addEventListener('pointerup', endZoomSwipe);
+    zoomSwipe.addEventListener('pointercancel', endZoomSwipe);
+
+    zoomHold.addEventListener('pointerdown', beginHoldZoom);
+    zoomHold.addEventListener('pointerup', () => finishHoldZoom());
+    zoomHold.addEventListener('pointercancel', () => finishHoldZoom(true));
+    zoomHold.addEventListener('lostpointercapture', () => finishHoldZoom(true));
+    zoomHold.addEventListener('keydown', event => {
+      if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) beginHoldZoom(event);
+    });
+    zoomHold.addEventListener('keyup', event => {
+      if (event.key === ' ' || event.key === 'Enter') finishHoldZoom();
+    });
+    zoomHold.addEventListener('click', event => event.preventDefault());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) finishHoldZoom(true);
     });
 
     pad.addEventListener('pointerdown', e => {
@@ -417,7 +530,7 @@
       if (touches.size === 1) { startTime = performance.now(); totalMove = 0; maxTouches = 1; }
       maxTouches = Math.max(maxTouches, touches.size);
       if (touches.size === 2) beginScrollMotion();
-      else if (touches.size === 3 && pinchZoomEnabled) {
+      else if (touches.size === 3 && pinchZoomEnabled && !holdZoomActive) {
         finishScrollMotion();
         beginThreeFingerGesture();
       }
@@ -436,7 +549,7 @@
       const dx = after.x - before.x, dy = after.y - before.y;
       totalMove += Math.abs(dx) + Math.abs(dy);
       if (touches.size === 2) queueScroll(dx, dy);
-      else if (touches.size === 3 && pinchZoomEnabled) handleThreeFingerGesture();
+      else if (touches.size === 3 && pinchZoomEnabled && !holdZoomActive) handleThreeFingerGesture();
       else if (touches.size > 1) queueScroll(dx, dy);
       else if (maxTouches === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
       else if (maxTouches === 1) send('move', {dx, dy});

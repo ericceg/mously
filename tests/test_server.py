@@ -17,6 +17,9 @@ def test_remote_page_is_never_cached():
             assert response.headers["Cache-Control"] == "no-store"
             page = await response.text()
             assert "Touch to position pointer" in page
+            assert 'id="zoomHold"' in page
+            assert 'id="zoomSwipe"' in page
+            assert "send('magnify', {phase: 'began', delta: 0})" in page
             assert 'data-key="left" aria-label="Skip back 5 seconds"' in page
             assert 'data-key="right" aria-label="Skip forward 5 seconds"' in page
 
