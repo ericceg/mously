@@ -4,8 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Mously">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#0c0d10">
-  <link rel="icon" href="data:,">
+  <link rel="apple-touch-icon" sizes="180x180" href="/mously-touch-icon.png">
+  <link rel="icon" type="image/png" href="/mously-touch-icon.png">
   <title>Mously</title>
   <style>
     :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif; }
@@ -209,7 +212,7 @@
     let volumePointerDown = false, suppressVolumeUntilPointerUp = false;
     let scrollFrame = null, scrollDx = 0, scrollDy = 0, scrollLastFrame = 0, scrollLastInput = 0;
     let scrollVelocityX = 0, scrollVelocityY = 0, scrollMomentumFrame = null, scrollMomentumLastFrame = 0;
-    let inputMode = localStorage.getItem('mouslyPointerMode') === 'relative' ? 'relative' : 'absolute';
+    let inputMode = localStorage.getItem('mouslyPointerMode') === 'absolute' ? 'absolute' : 'relative';
     let pinchZoomEnabled = localStorage.getItem('mouslyPinchZoom') !== 'false';
     let zoomSensitivity = ['gentle', 'normal', 'fast'].includes(localStorage.getItem('mouslyZoomSensitivity'))
       ? localStorage.getItem('mouslyZoomSensitivity') : 'normal';

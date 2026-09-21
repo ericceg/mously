@@ -102,6 +102,23 @@ def test_remote_page_is_never_cached():
             assert "localStorage.setItem(pairingTokenKey, fragmentToken)" in page
             assert "sessionStorage" not in page
             assert "history.replaceState" not in page
+            assert "=== 'absolute' ? 'absolute' : 'relative'" in page
+            assert 'rel="apple-touch-icon"' in page
+            assert 'href="/mously-touch-icon.png"' in page
+
+    asyncio.run(check())
+
+
+def test_apple_touch_icon_is_served():
+    async def check():
+        async with TestClient(
+            TestServer(create_app(FakeController(), PAIRING_TOKEN))
+        ) as client:
+            response = await client.get("/mously-touch-icon.png")
+            assert response.status == 200
+            assert response.content_type == "image/png"
+            assert response.headers["Cache-Control"] == "no-store"
+            assert (await response.read()).startswith(b"\x89PNG\r\n\x1a\n")
 
     asyncio.run(check())
 

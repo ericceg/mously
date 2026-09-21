@@ -71,11 +71,19 @@ def _has_pairing_token(request: web.Request, pairing_token: str) -> bool:
 def create_app(controller: MacController, pairing_token: str) -> web.Application:
     app = web.Application(client_max_size=16_384)
     index = files("mously.static").joinpath("index.html")
+    touch_icon = files("mously.static").joinpath("mously-touch-icon.png")
 
     async def home(_: web.Request) -> web.Response:
         return web.Response(
             text=index.read_text(encoding="utf-8"),
             content_type="text/html",
+            headers={"Cache-Control": "no-store"},
+        )
+
+    async def apple_touch_icon(_: web.Request) -> web.Response:
+        return web.Response(
+            body=touch_icon.read_bytes(),
+            content_type="image/png",
             headers={"Cache-Control": "no-store"},
         )
 
@@ -111,6 +119,7 @@ def create_app(controller: MacController, pairing_token: str) -> web.Application
         return ws
 
     app.router.add_get("/", home)
+    app.router.add_get("/mously-touch-icon.png", apple_touch_icon)
     app.router.add_get("/ws", websocket)
     return app
 
