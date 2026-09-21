@@ -113,7 +113,11 @@ def test_remote_page_is_never_cached():
             assert "--page: #000000" in page
             assert "localStorage.setItem('mouslyAppearance', appearance)" in page
             assert 'id="modeChoices"' in page
+            assert 'id="mouseSensitivity"' in page
+            assert 'id="panSensitivity"' in page
             assert 'id="pinchZoom"' in page
+            assert "sensitivityGain(mouseSensitivitySetting)" in page
+            assert "sensitivityGain(panSensitivitySetting)" in page
             assert 'rel="apple-touch-icon"' in page
             assert 'href="/mously-touch-icon.png"' in page
 

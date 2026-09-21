@@ -285,6 +285,22 @@
           <span class="settingLabel">Mapped screen</span>
           <button id="screenToggle">Choose…</button>
         </div>
+        <div class="settingRow">
+          <label for="mouseSensitivity">Mouse sensitivity</label>
+          <select id="mouseSensitivity">
+            <option value="gentle">Gentle</option>
+            <option value="normal">Normal</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
+        <div class="settingRow">
+          <label for="panSensitivity">Pan sensitivity</label>
+          <select id="panSensitivity">
+            <option value="gentle">Gentle</option>
+            <option value="normal">Normal</option>
+            <option value="fast">Fast</option>
+          </select>
+        </div>
       </section>
       <section class="settingsSection" aria-labelledby="pinchHeading">
         <h3 id="pinchHeading">Pinch zoom</h3>
@@ -293,7 +309,7 @@
           <label class="switch"><input id="pinchZoom" type="checkbox"><span aria-hidden="true"></span></label>
         </div>
         <div class="settingRow">
-          <label for="pinchSensitivity">Sensitivity</label>
+          <label for="pinchSensitivity">Pinch zoom sensitivity</label>
           <select id="pinchSensitivity">
             <option value="gentle">Gentle</option>
             <option value="normal">Normal</option>
@@ -323,6 +339,8 @@
     const modeChoices = document.querySelectorAll('[data-mode-choice]');
     const themeChoices = document.querySelectorAll('[data-theme-choice]');
     const themeColor = document.querySelector('#themeColor');
+    const mouseSensitivity = document.querySelector('#mouseSensitivity');
+    const panSensitivity = document.querySelector('#panSensitivity');
     const pinchZoom = document.querySelector('#pinchZoom');
     const pinchSensitivity = document.querySelector('#pinchSensitivity');
     const zoomHold = document.querySelector('#zoomHold');
@@ -342,15 +360,23 @@
     let inputMode = localStorage.getItem('mouslyPointerMode') === 'absolute' ? 'absolute' : 'relative';
     let appearance = ['default', 'light', 'oled'].includes(localStorage.getItem('mouslyAppearance'))
       ? localStorage.getItem('mouslyAppearance') : 'default';
+    let mouseSensitivitySetting = validSensitivity(localStorage.getItem('mouslyMouseSensitivity'));
+    let panSensitivitySetting = validSensitivity(localStorage.getItem('mouslyPanSensitivity'));
     let pinchZoomEnabled = localStorage.getItem('mouslyPinchZoom') !== 'false';
-    let zoomSensitivity = ['gentle', 'normal', 'fast'].includes(localStorage.getItem('mouslyZoomSensitivity'))
-      ? localStorage.getItem('mouslyZoomSensitivity') : 'normal';
+    let zoomSensitivity = validSensitivity(localStorage.getItem('mouslyZoomSensitivity'));
     const pairingTokenKey = 'mouslyPairingToken';
     const fragmentToken = new URLSearchParams(location.hash.slice(1)).get('token');
     if (fragmentToken) {
       localStorage.setItem(pairingTokenKey, fragmentToken);
     }
     const pairingToken = fragmentToken || localStorage.getItem(pairingTokenKey);
+
+    function validSensitivity(value) {
+      return ['gentle', 'normal', 'fast'].includes(value) ? value : 'normal';
+    }
+    function sensitivityGain(value) {
+      return {gentle: 0.65, normal: 1, fast: 1.45}[value];
+    }
 
     function setAppearance(theme) {
       appearance = ['light', 'oled'].includes(theme) ? theme : 'default';
@@ -457,7 +483,7 @@
       const speed = Math.hypot(scrollDx, scrollDy) / elapsed;
       // Keep precise gestures nearly 1:1, then smoothly add gain as the
       // fingers move faster, similar to macOS trackpad acceleration.
-      const gain = 1.05 + 1.45 * speed / (speed + 1.2);
+      const gain = (1.05 + 1.45 * speed / (speed + 1.2)) * sensitivityGain(panSensitivitySetting);
       const outputX = scrollDx * gain, outputY = scrollDy * gain;
       const instantVelocityX = outputX / elapsed, instantVelocityY = outputY / elapsed;
       scrollVelocityX = scrollVelocityX * 0.25 + instantVelocityX * 0.75;
@@ -546,7 +572,7 @@
       send('magnify', {phase: 'changed', delta: (nextDistance / previousDistance - 1) * zoomGain()});
     }
     function zoomGain() {
-      return {gentle: 0.65, normal: 1, fast: 1.45}[zoomSensitivity];
+      return sensitivityGain(zoomSensitivity);
     }
     function normalizedPoint(event) {
       const bounds = pad.getBoundingClientRect();
@@ -764,7 +790,10 @@
       else if (touches.size === 3 && pinchZoomEnabled && !holdZoomActive) handleThreeFingerGesture();
       else if (touches.size > 1) queueScroll(dx, dy);
       else if (maxTouches === 1 && inputMode === 'absolute') send('point', normalizedPoint(e));
-      else if (maxTouches === 1) send('move', {dx, dy});
+      else if (maxTouches === 1) {
+        const gain = sensitivityGain(mouseSensitivitySetting);
+        send('move', {dx: dx * gain, dy: dy * gain});
+      }
     });
     function endPointer(e) {
       const count = touches.size;
@@ -871,16 +900,26 @@
       haptic();
       setAppearance(button.dataset.themeChoice);
     });
+    mouseSensitivity.value = mouseSensitivitySetting;
+    panSensitivity.value = panSensitivitySetting;
     pinchZoom.checked = pinchZoomEnabled;
     pad.dataset.pinchZoom = pinchZoomEnabled ? 'on' : 'off';
     pinchSensitivity.value = zoomSensitivity;
+    mouseSensitivity.onchange = () => {
+      mouseSensitivitySetting = validSensitivity(mouseSensitivity.value);
+      localStorage.setItem('mouslyMouseSensitivity', mouseSensitivitySetting);
+    };
+    panSensitivity.onchange = () => {
+      panSensitivitySetting = validSensitivity(panSensitivity.value);
+      localStorage.setItem('mouslyPanSensitivity', panSensitivitySetting);
+    };
     pinchZoom.onchange = () => {
       pinchZoomEnabled = pinchZoom.checked;
       pad.dataset.pinchZoom = pinchZoomEnabled ? 'on' : 'off';
       localStorage.setItem('mouslyPinchZoom', String(pinchZoomEnabled));
     };
     pinchSensitivity.onchange = () => {
-      zoomSensitivity = pinchSensitivity.value;
+      zoomSensitivity = validSensitivity(pinchSensitivity.value);
       localStorage.setItem('mouslyZoomSensitivity', zoomSensitivity);
     };
     function sendText() { if (text.value) { send('text', {text: text.value}); text.value = ''; } }
