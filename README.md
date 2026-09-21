@@ -1,8 +1,8 @@
 # Mously
 
-A tiny, local-only iPhone touchpad and media remote for macOS. It has no account,
-cloud service, analytics, or database. The browser and Mac communicate directly
-over your Wi-Fi.
+A tiny iPhone touchpad and media remote for macOS that runs entirely on your
+local network. It has no account, cloud service, analytics, or database. The
+browser and Mac communicate directly over your Wi-Fi.
 
 ## Start it
 
@@ -16,8 +16,9 @@ over your Wi-Fi.
 3. The first run asks for macOS Accessibility access. Enable your terminal (or
    Codex, if launched here) in **System Settings → Privacy & Security →
    Accessibility**, then restart Mously.
-4. Open the printed address, such as `http://192.168.1.86:8765`, in Safari on an
-   iPhone connected to the same Wi-Fi.
+4. Open the complete paired address printed by Mously, such as
+   `http://192.168.1.86:8765/#token=...`, in Safari on an iPhone connected to
+   the same Wi-Fi. The random pairing token changes every time Mously starts.
 
 Keep the terminal window open while using the remote. Press `Control-C` to stop.
 Use `uv run mously --port 9000` to choose another port.
@@ -40,5 +41,25 @@ Mously requests a short vibration for taps and buttons on browsers that implemen
 the web Vibration API. iPhone Safari currently does not expose that API, so iOS
 shows a touch ripple on the trackpad and a confirmation pulse on control buttons.
 
-Mously listens on the local network without authentication. Use it only on a
-network you trust, and stop the process when you are finished.
+## Security
+
+Mously listens on the local network. Each run creates a random pairing token;
+only browsers opened with the complete printed address can establish the
+control WebSocket. The token is carried in the URL fragment, which is not sent
+in the initial HTTP request, and is retained only for that browser tab's
+session.
+
+Traffic is not encrypted, and anyone who obtains the paired address can control
+the Mac through Mously. Use it only on a network you trust, do not share the
+address, and stop the process when you are finished.
+
+## License and attribution
+
+Mously is licensed under the GNU General Public License, version 2 or (at your
+option) any later version. See [LICENSE](LICENSE).
+
+The private macOS gesture-event serialization in `mously/macos.py` is a Python
+adaptation of `tl_CGEventCreateFromGesture` from Calf Trail Software's
+[Touch](https://github.com/calftrail/Touch) project, copyright 2010 Calf Trail
+Software, LLC, and distributed under GPL-2.0-or-later. Hammerspoon also carries
+and documents that implementation.

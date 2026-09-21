@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+# SPDX-License-Identifier: GPL-2.0-or-later
+# The gesture-event serialization in _create_magnify_event is derived from
+# Calf Trail Software's Touch project (TouchSynthesis/TouchEvents.c).
+# Copyright (C) 2010 Calf Trail Software, LLC.
 import ctypes
 import struct
 import time
@@ -7,7 +11,6 @@ import time
 import AppKit
 import Foundation
 import Quartz
-
 
 KEY_CODES = {
     "enter": 36,
@@ -173,8 +176,8 @@ def _create_magnify_event(delta: float, phase: str):
     AppKit exposes magnify events publicly but Core Graphics has no public
     system-wide constructor for them. This serialization format is private,
     so it is intentionally isolated here and covered by an AppKit decode test.
-    Its envelope follows calftrail/Touch's ``tl_CGEventCreateFromGesture``
-    format, also used by Hammerspoon's gesture event implementation.
+    This is a Python adaptation of calftrail/Touch's GPL-2.0-or-later
+    ``tl_CGEventCreateFromGesture`` implementation, also used by Hammerspoon.
     """
     prototype = Quartz.CGEventCreate(None)
     Quartz.CGEventSetType(prototype, AppKit.NSEventTypeGesture)

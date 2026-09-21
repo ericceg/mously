@@ -2,6 +2,9 @@
 name = "mously"
 version = "0.1.0"
 description = "A tiny iPhone trackpad and media remote for macOS"
+readme = "README.md"
+license = "GPL-2.0-or-later"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [
     "aiohttp>=3.11,<4",
@@ -24,4 +27,3 @@ packages = ["mously"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-

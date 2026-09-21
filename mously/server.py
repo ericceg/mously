@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import argparse
-import asyncio
+import hmac
 import json
+import secrets
 import socket
 from importlib.resources import files
 
-from aiohttp import WSMsgType, web
+from aiohttp import WSCloseCode, WSMsgType, web
 
 from .macos import MacController
 from .protocol import ProtocolError, parse_command
+
+CONTROL_PROTOCOL = "mously"
+TOKEN_PROTOCOL_PREFIX = "mously-token."
 
 
 def local_ip() -> str:
@@ -23,7 +27,16 @@ def local_ip() -> str:
         sock.close()
 
 
-def create_app(controller: MacController) -> web.Application:
+def _has_pairing_token(request: web.Request, pairing_token: str) -> bool:
+    offered_protocols = request.headers.get("Sec-WebSocket-Protocol", "")
+    expected = f"{TOKEN_PROTOCOL_PREFIX}{pairing_token}"
+    return any(
+        hmac.compare_digest(protocol.strip(), expected)
+        for protocol in offered_protocols.split(",")
+    )
+
+
+def create_app(controller: MacController, pairing_token: str) -> web.Application:
     app = web.Application(client_max_size=16_384)
     index = files("mously.static").joinpath("index.html")
 
@@ -35,8 +48,13 @@ def create_app(controller: MacController) -> web.Application:
         )
 
     async def websocket(request: web.Request) -> web.WebSocketResponse:
-        ws = web.WebSocketResponse(heartbeat=20, max_msg_size=16_384)
+        ws = web.WebSocketResponse(
+            protocols=(CONTROL_PROTOCOL,), heartbeat=20, max_msg_size=16_384
+        )
         await ws.prepare(request)
+        if not _has_pairing_token(request, pairing_token):
+            await ws.close(code=WSCloseCode.POLICY_VIOLATION, message=b"Pairing required")
+            return ws
         async for message in ws:
             if message.type != WSMsgType.TEXT:
                 continue
@@ -93,12 +111,15 @@ def main() -> None:
 
     controller = MacController()
     trusted = controller.request_accessibility()
-    address = f"http://{local_ip()}:{args.port}"
+    pairing_token = secrets.token_urlsafe(24)
+    address = f"http://{local_ip()}:{args.port}/#token={pairing_token}"
     print(f"\n  Mously is ready: {address}\n")
     if not trusted:
         print("  macOS permission needed: enable your terminal under")
         print("  System Settings → Privacy & Security → Accessibility, then restart Mously.\n")
-    web.run_app(create_app(controller), host="0.0.0.0", port=args.port, print=None)
+    web.run_app(
+        create_app(controller, pairing_token), host="0.0.0.0", port=args.port, print=None
+    )
 
 
 if __name__ == "__main__":

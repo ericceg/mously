@@ -213,9 +213,24 @@
     let pinchZoomEnabled = localStorage.getItem('mouslyPinchZoom') !== 'false';
     let zoomSensitivity = ['gentle', 'normal', 'fast'].includes(localStorage.getItem('mouslyZoomSensitivity'))
       ? localStorage.getItem('mouslyZoomSensitivity') : 'normal';
+    const pairingTokenKey = 'mouslyPairingToken';
+    const fragmentToken = new URLSearchParams(location.hash.slice(1)).get('token');
+    if (fragmentToken) {
+      sessionStorage.setItem(pairingTokenKey, fragmentToken);
+      history.replaceState(null, '', `${location.pathname}${location.search}`);
+    }
+    const pairingToken = fragmentToken || sessionStorage.getItem(pairingTokenKey);
 
     function connect() {
-      socket = new WebSocket(`${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`);
+      if (!pairingToken) {
+        status.textContent = 'Pairing required';
+        status.className = '';
+        return;
+      }
+      socket = new WebSocket(
+        `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`,
+        ['mously', `mously-token.${pairingToken}`],
+      );
       socket.onopen = () => {
         status.textContent = 'Connected';
         status.className = 'online';
@@ -235,10 +250,16 @@
           if (message.ok) screensDialog.close();
         }
       };
-      socket.onclose = () => {
+      socket.onclose = event => {
+        clearInterval(volumeSyncTimer);
+        if (event.code === 1008) {
+          sessionStorage.removeItem(pairingTokenKey);
+          status.textContent = 'Pairing required';
+          status.className = '';
+          return;
+        }
         status.textContent = 'Reconnecting…';
         status.className = '';
-        clearInterval(volumeSyncTimer);
         reconnectTimer = setTimeout(connect, 1000);
       };
       socket.onerror = () => socket.close();
