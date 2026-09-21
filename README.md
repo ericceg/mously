@@ -1,5 +1,14 @@
 # Mously
 
+[![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0%2B-blue.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-green.svg)](https://www.python.org/)
+![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
+![Network](https://img.shields.io/badge/network-local%20only-brightgreen.svg)
+
+<p align="center">
+  <img src="assets/mously-logo-v4.png" alt="Mously logo" width="240">
+</p>
+
 **Use your iPhone as a trackpad and media remote for your Mac.**
 
 Mously runs entirely on your local network. There is no iPhone app to install,
@@ -25,11 +34,13 @@ mously
 ```
 
 On first launch, allow your terminal to control the Mac under **System Settings
-→ Privacy & Security → Accessibility**, then restart Mously.
+→ Privacy & Security → Accessibility**, then restart Mously (use `Control-C` to stop it and run `mously` again).
 
 Open the complete paired address printed in the terminal on an iPhone connected
-to the same Wi-Fi. Keep Mously running while you use the remote; press
+to the same Wi-Fi. Keep Mously running while you use the remote, press
 `Control-C` to stop it.
+
+It is also recommended to save the paired address to your iPhone's home screen for quick access. In Safari, tap the share button and select "Add to Home Screen".
 
 Mously keeps the pairing token across restarts, so a saved home-screen app
 continues to work. To invalidate the old address and pair again, run:
