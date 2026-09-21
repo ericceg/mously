@@ -335,6 +335,7 @@
     let threeFingerGesture = null;
     let holdZoomActive = false, holdZoomPointerId = null, volumeBeforeZoom = 50;
     let zoomSwipePointerId = null, zoomSwipeLastY = 0, zoomSwipeFeedbackTimer = null;
+    let zoomSwipeLastInput = 0, zoomSwipeVelocity = 0, zoomSwipeMomentumFrame = null, zoomSwipeMomentumLastFrame = 0;
     let volumePointerDown = false, suppressVolumeUntilPointerUp = false;
     let scrollFrame = null, scrollDx = 0, scrollDy = 0, scrollLastFrame = 0, scrollLastInput = 0;
     let scrollVelocityX = 0, scrollVelocityY = 0, scrollMomentumFrame = null, scrollMomentumLastFrame = 0;
@@ -579,6 +580,7 @@
     function beginHoldZoom(event) {
       if (holdZoomActive || (event.pointerType === 'mouse' && event.button !== 0)) return;
       event.preventDefault();
+      stopZoomSwipeMomentum();
       holdZoomActive = true;
       holdZoomPointerId = event.pointerId ?? null;
       if (holdZoomPointerId !== null) zoomHold.setPointerCapture(holdZoomPointerId);
@@ -602,6 +604,7 @@
       if (!holdZoomActive) return;
       holdZoomActive = false;
       holdZoomPointerId = null;
+      stopZoomSwipeMomentum();
       suppressVolumeUntilPointerUp = volumePointerDown;
       send('magnify', {phase: cancelled ? 'cancelled' : 'ended', delta: 0});
       zoomHold.classList.remove('holding');
@@ -651,29 +654,72 @@
     volume.addEventListener('pointerup', endVolumePointer);
     volume.addEventListener('pointercancel', endVolumePointer);
 
+    function showZoomSwipeDirection(delta) {
+      zoomSwipe.dataset.direction = delta > 0 ? 'in' : 'out';
+      clearTimeout(zoomSwipeFeedbackTimer);
+      zoomSwipeFeedbackTimer = setTimeout(() => zoomSwipe.removeAttribute('data-direction'), 100);
+    }
+    function stopZoomSwipeMomentum() {
+      if (zoomSwipeMomentumFrame !== null) cancelAnimationFrame(zoomSwipeMomentumFrame);
+      zoomSwipeMomentumFrame = null;
+      zoomSwipeMomentumLastFrame = 0;
+      zoomSwipeVelocity = 0;
+    }
+    function continueZoomSwipeMomentum(timestamp) {
+      if (!holdZoomActive) { stopZoomSwipeMomentum(); return; }
+      const elapsed = Math.max(8, Math.min(32, timestamp - zoomSwipeMomentumLastFrame));
+      zoomSwipeMomentumLastFrame = timestamp;
+      zoomSwipeVelocity *= Math.pow(0.84, elapsed / (1000 / 60));
+      const delta = zoomSwipeVelocity * elapsed;
+      send('magnify', {phase: 'changed', delta});
+      showZoomSwipeDirection(delta);
+      if (Math.abs(zoomSwipeVelocity) > 0.00004) {
+        zoomSwipeMomentumFrame = requestAnimationFrame(continueZoomSwipeMomentum);
+      } else {
+        stopZoomSwipeMomentum();
+      }
+    }
+    function startZoomSwipeMomentum() {
+      const recentInput = performance.now() - zoomSwipeLastInput < 80;
+      if (!holdZoomActive || !recentInput || Math.abs(zoomSwipeVelocity) < 0.00015) {
+        zoomSwipeVelocity = 0;
+        return;
+      }
+      zoomSwipeVelocity = Math.max(-0.0035, Math.min(0.0035, zoomSwipeVelocity));
+      zoomSwipeMomentumLastFrame = performance.now();
+      zoomSwipeMomentumFrame = requestAnimationFrame(continueZoomSwipeMomentum);
+    }
     zoomSwipe.addEventListener('pointerdown', event => {
       if (!holdZoomActive || zoomSwipePointerId !== null) return;
       event.preventDefault();
+      stopZoomSwipeMomentum();
       zoomSwipePointerId = event.pointerId;
       zoomSwipeLastY = event.clientY;
+      zoomSwipeLastInput = performance.now();
       zoomSwipe.setPointerCapture(event.pointerId);
     });
     zoomSwipe.addEventListener('pointermove', event => {
       if (!holdZoomActive || event.pointerId !== zoomSwipePointerId) return;
+      const now = performance.now();
+      const elapsed = Math.max(1, now - zoomSwipeLastInput);
       const distance = zoomSwipeLastY - event.clientY;
       zoomSwipeLastY = event.clientY;
       if (distance === 0) return;
       const delta = distance / Math.max(160, zoomSwipe.clientHeight) * zoomGain();
+      const instantVelocity = delta / elapsed;
+      zoomSwipeVelocity = zoomSwipeVelocity * 0.25 + instantVelocity * 0.75;
+      zoomSwipeLastInput = now;
       send('magnify', {phase: 'changed', delta});
-      zoomSwipe.dataset.direction = delta > 0 ? 'in' : 'out';
-      clearTimeout(zoomSwipeFeedbackTimer);
-      zoomSwipeFeedbackTimer = setTimeout(() => zoomSwipe.removeAttribute('data-direction'), 100);
+      showZoomSwipeDirection(delta);
     });
-    function endZoomSwipe(event) {
-      if (event.pointerId === zoomSwipePointerId) zoomSwipePointerId = null;
+    function endZoomSwipe(event, withMomentum) {
+      if (event.pointerId !== zoomSwipePointerId) return;
+      zoomSwipePointerId = null;
+      if (withMomentum) startZoomSwipeMomentum();
+      else stopZoomSwipeMomentum();
     }
-    zoomSwipe.addEventListener('pointerup', endZoomSwipe);
-    zoomSwipe.addEventListener('pointercancel', endZoomSwipe);
+    zoomSwipe.addEventListener('pointerup', event => endZoomSwipe(event, true));
+    zoomSwipe.addEventListener('pointercancel', event => endZoomSwipe(event, false));
 
     zoomHold.addEventListener('pointerdown', beginHoldZoom);
     zoomHold.addEventListener('pointerup', () => finishHoldZoom());
