@@ -31,6 +31,13 @@ Open the complete paired address printed in the terminal on an iPhone connected
 to the same Wi-Fi. Keep Mously running while you use the remote; press
 `Control-C` to stop it.
 
+Mously keeps the pairing token across restarts, so a saved home-screen app
+continues to work. To invalidate the old address and pair again, run:
+
+```bash
+mously --reset-pairing
+```
+
 To use a different port:
 
 ```bash
@@ -49,8 +56,11 @@ mously --port 9000
 
 ## Security
 
-Each run creates a new random pairing token. Only a browser opened with the
-complete address printed by Mously can connect.
+On first launch, Mously creates a random pairing token and stores it in
+`~/Library/Application Support/Mously/pairing-token`. Only a browser opened
+with the complete paired address can connect. The same token is reused across
+restarts so bookmarks and home-screen apps keep working; use
+`mously --reset-pairing` to revoke it.
 
 **Important security note:**
 Traffic is not encrypted, and anyone with that address can control your Mac.

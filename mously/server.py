@@ -1,11 +1,15 @@
 from __future__ import annotations
 
 import argparse
+import errno
 import hmac
 import json
+import os
 import secrets
 import socket
+import sys
 from importlib.resources import files
+from pathlib import Path
 
 from aiohttp import WSCloseCode, WSMsgType, web
 
@@ -14,6 +18,7 @@ from .protocol import ProtocolError, parse_command
 
 CONTROL_PROTOCOL = "mously"
 TOKEN_PROTOCOL_PREFIX = "mously-token."
+PAIRING_TOKEN_PATH = Path.home() / "Library" / "Application Support" / "Mously" / "pairing-token"
 
 
 def local_ip() -> str:
@@ -25,6 +30,33 @@ def local_ip() -> str:
         return "127.0.0.1"
     finally:
         sock.close()
+
+
+def load_or_create_pairing_token(
+    path: Path = PAIRING_TOKEN_PATH, *, reset: bool = False
+) -> str:
+    if not reset:
+        try:
+            token = path.read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            pass
+        else:
+            if token:
+                path.chmod(0o600)
+                return token
+
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    token = secrets.token_urlsafe(24)
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.fchmod(descriptor, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as token_file:
+            descriptor = -1
+            token_file.write(token)
+    finally:
+        if descriptor != -1:
+            os.close(descriptor)
+    return token
 
 
 def _has_pairing_token(request: web.Request, pairing_token: str) -> bool:
@@ -104,22 +136,53 @@ def dispatch(controller: MacController, action: str, payload: dict) -> None:
         controller.magnify(payload["delta"], payload["phase"])
 
 
+def _port_in_use_message(port: int) -> str:
+    return (
+        f"\nMously could not start because port {port} is already in use.\n"
+        "Another Mously instance may already be running. Press Ctrl+C in its "
+        "terminal to stop it.\n\n"
+        "To find the process using the port:\n"
+        f"  lsof -nP -iTCP:{port} -sTCP:LISTEN\n\n"
+        "To stop that process:\n"
+        f"  kill $(lsof -tiTCP:{port} -sTCP:LISTEN)\n\n"
+        "Or start Mously on a different port:\n"
+        f"  mously --port {port + 1}\n"
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Use an iPhone as a local trackpad for this Mac")
     parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument(
+        "--reset-pairing",
+        action="store_true",
+        help="create a new pairing token and invalidate the previous paired address",
+    )
     args = parser.parse_args()
 
     controller = MacController()
     trusted = controller.request_accessibility()
-    pairing_token = secrets.token_urlsafe(24)
+    pairing_token = load_or_create_pairing_token(reset=args.reset_pairing)
     address = f"http://{local_ip()}:{args.port}/#token={pairing_token}"
-    print(f"\n  Mously is ready: {address}\n")
-    if not trusted:
-        print("  macOS permission needed: enable your terminal under")
-        print("  System Settings → Privacy & Security → Accessibility, then restart Mously.\n")
-    web.run_app(
-        create_app(controller, pairing_token), host="0.0.0.0", port=args.port, print=None
-    )
+
+    def print_ready(*_: object) -> None:
+        print(f"\n  Mously is ready: {address}\n")
+        if not trusted:
+            print("  macOS permission needed: enable your terminal under")
+            print("  System Settings → Privacy & Security → Accessibility, then restart Mously.\n")
+
+    try:
+        web.run_app(
+            create_app(controller, pairing_token),
+            host="0.0.0.0",
+            port=args.port,
+            print=print_ready,
+        )
+    except OSError as exc:
+        if exc.errno != errno.EADDRINUSE:
+            raise
+        print(_port_in_use_message(args.port), file=sys.stderr, end="")
+        raise SystemExit(1) from None
 
 
 if __name__ == "__main__":

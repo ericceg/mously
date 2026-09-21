@@ -216,10 +216,9 @@
     const pairingTokenKey = 'mouslyPairingToken';
     const fragmentToken = new URLSearchParams(location.hash.slice(1)).get('token');
     if (fragmentToken) {
-      sessionStorage.setItem(pairingTokenKey, fragmentToken);
-      history.replaceState(null, '', `${location.pathname}${location.search}`);
+      localStorage.setItem(pairingTokenKey, fragmentToken);
     }
-    const pairingToken = fragmentToken || sessionStorage.getItem(pairingTokenKey);
+    const pairingToken = fragmentToken || localStorage.getItem(pairingTokenKey);
 
     function connect() {
       if (!pairingToken) {
@@ -253,7 +252,7 @@
       socket.onclose = event => {
         clearInterval(volumeSyncTimer);
         if (event.code === 1008) {
-          sessionStorage.removeItem(pairingTokenKey);
+          localStorage.removeItem(pairingTokenKey);
           status.textContent = 'Pairing required';
           status.className = '';
           return;
