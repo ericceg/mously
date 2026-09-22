@@ -3,7 +3,7 @@ name = "mously"
 version = "0.1.0"
 description = "A tiny iPhone trackpad and media remote for macOS"
 readme = "README.md"
-license = "GPL-2.0-or-later"
+license = "GPL-2.0-only"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
 dependencies = [

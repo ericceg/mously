@@ -1,9 +1,9 @@
 # Mously
 
-[![License: GPL v2+](https://img.shields.io/badge/license-GPL--2.0%2B-blue.svg)](LICENSE)
+[![License: GPL v2](https://img.shields.io/badge/license-GPL--2.0-blue.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-green.svg)](https://www.python.org/)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
-![Network](https://img.shields.io/badge/network-local%20only-brightgreen.svg)
+![Network](https://img.shields.io/badge/network-self--hosted-blue.svg)
 
 <p align="center">
   <img src="assets/mously-logo-v4.png" alt="Mously logo" width="240">
@@ -11,9 +11,10 @@
 
 **Use your iPhone as a trackpad and media remote for your Mac.**
 
-Mously runs entirely on your local network. There is no iPhone app to install,
-no account, no cloud service, and no analytics. Just open the paired address in
-Safari and control your Mac from your phone.
+Mously is self-hosted on your Mac. There is no iPhone app to install, no
+account, no cloud service, and no analytics. It listens on all IPv4 network
+interfaces so your phone can connect, which means it may be reachable through
+any LAN, VPN, or routed network connected to your Mac.
 
 ## Why I Built This
 
@@ -38,9 +39,9 @@ mously
 On first launch, allow your terminal to control the Mac under **System Settings
 → Privacy & Security → Accessibility**, then restart Mously (use `Control-C` to stop it and run `mously` again).
 
-Open the complete paired address printed in the terminal on an iPhone connected
-to the same Wi-Fi. Keep Mously running while you use the remote, press
-`Control-C` to stop it.
+Open the complete paired address printed in the terminal on an iPhone, typically
+while both devices are connected to the same trusted Wi-Fi. Keep Mously running
+while you use the remote; press `Control-C` to stop it.
 
 It is also recommended to save the paired address to your iPhone's home screen for quick access. In Safari, tap the share button and select "Add to Home Screen".
 
@@ -76,9 +77,11 @@ restarts so bookmarks and home-screen apps keep working; use
 `mously --reset-pairing` to revoke it.
 
 **Important security note:**
-Traffic is not encrypted, and anyone with that address can control your Mac.
-Use Mously only on a network you trust, do not share the address, and stop it
-when you are finished.
+Traffic is not encrypted. Mously listens on all IPv4 interfaces (`0.0.0.0`)
+and does not technically enforce LAN-only access. Anyone who can reach the port
+and obtains the complete paired address can control your Mac. Use Mously only
+on networks you trust, check your firewall and router exposure, do not share the
+address, and stop Mously when you are finished.
 
 ## Development
 
@@ -96,9 +99,9 @@ uv run pytest
 
 ## License
 
-GPL-2.0-or-later. See [LICENSE](LICENSE).
+GPL-2.0-only. See [LICENSE](LICENSE).
 
 The private macOS gesture-event serialization in `mously/macos.py` is adapted
 from `tl_CGEventCreateFromGesture` in Calf Trail Software's
 [Touch](https://github.com/calftrail/Touch) project, copyright 2010 Calf Trail
-Software, LLC, and distributed under GPL-2.0-or-later.
+Software, LLC, and distributed under GPL-2.0-only.
