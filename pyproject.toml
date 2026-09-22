@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "A tiny iPhone trackpad and media remote for macOS"
 readme = "README.md"
 license = "GPL-2.0-only"
-license-files = ["LICENSE"]
+license-files = ["LICENSE", "docs/third-party-notices.md"]
 requires-python = ">=3.11"
 dependencies = [
     "aiohttp>=3.11,<4",
@@ -16,7 +16,7 @@ dependencies = [
 mously = "mously.server:main"
 
 [dependency-groups]
-dev = ["pytest>=8,<9"]
+dev = ["pytest>=9.0.3,<10"]
 
 [build-system]
 requires = ["hatchling"]

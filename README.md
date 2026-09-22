@@ -103,4 +103,8 @@ GPL-2.0-only. See [LICENSE](LICENSE).
 The private macOS gesture-event serialization in `mously/macos.py` is adapted
 from `tl_CGEventCreateFromGesture` in Calf Trail Software's
 [Touch](https://github.com/calftrail/Touch) project, copyright 2010 Calf Trail
-Software, LLC, and distributed under GPL-2.0-only.
+Software, LLC. Touch is licensed under GPL-2.0-or-later; Mously exercises the
+GPL version-selection option and distributes the adaptation under
+GPL-2.0-only. See
+[Third-party notices](docs/third-party-notices.md) for source and licensing
+details.

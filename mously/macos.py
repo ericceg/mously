@@ -4,6 +4,8 @@ from __future__ import annotations
 # The gesture-event serialization in _create_magnify_event is derived from
 # Calf Trail Software's Touch project (TouchSynthesis/TouchEvents.c).
 # Copyright (C) 2010 Calf Trail Software, LLC.
+# Originally licensed under GPL-2.0-or-later. Adapted and modified for Mously
+# beginning 2026-09-20; see docs/third-party-notices.md for provenance details.
 import ctypes
 import struct
 import time
