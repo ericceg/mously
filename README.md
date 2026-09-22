@@ -12,9 +12,8 @@
 **Use your iPhone as a trackpad and media remote for your Mac.**
 
 Mously is self-hosted on your Mac. There is no iPhone app to install, no
-account, no cloud service, and no analytics. It listens on all IPv4 network
-interfaces so your phone can connect, which means it may be reachable through
-any LAN, VPN, or routed network connected to your Mac.
+account, no cloud service, and no analytics. Just open the paired address in
+Safari and control your Mac from your phone.
 
 ## Why I Built This
 
