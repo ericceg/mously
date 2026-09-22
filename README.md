@@ -28,6 +28,8 @@ a trackpad, keyboard, app switcher, and media remote.
 Mously requires macOS, Python 3.11+, and
 [`uv`](https://docs.astral.sh/uv/getting-started/installation/).
 
+To install Mously, simply run the following commands in your terminal:
+
 ```bash
 uv tool install git+https://github.com/ericceg/mously.git
 mously

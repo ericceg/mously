@@ -115,6 +115,13 @@
     input[type="text"] { -webkit-user-select: text; user-select: text; }
     html { margin: 0; height: 100%; overflow: hidden; background: var(--page); }
     body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: var(--page); color: var(--text); touch-action: none; padding: max(4px, env(safe-area-inset-top)) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto auto; gap: 0; }
+    @media (display-mode: standalone), (display-mode: fullscreen) {
+      /* iOS can expose a shorter dynamic viewport to an installed app even
+         though it draws the page across the full screen. Use the large
+         viewport there so the grid reaches the home-indicator inset, and
+         keep the header below the status-bar fade. */
+      body { height: 100vh; height: 100lvh; padding-top: max(12px, calc(env(safe-area-inset-top) + 8px)); }
+    }
     header { display: flex; min-height: 34px; align-items: center; justify-content: space-between; padding: 0 14px; }
     h1 { font-size: 16px; margin: 0; letter-spacing: -.3px; }
     #status { display: flex; align-items: center; gap: 6px; color: #ffb84d; font-size: 12px; }
@@ -126,7 +133,7 @@
     #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers scroll and pan"; }
     #pad[data-mode="relative"]::after { content: "Drag to move pointer\A Two fingers scroll and pan"; }
     #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers pan · three fingers pinch"; }
-    #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "Drag to move pointer\A Two fingers pan · three fingers pinch"; }
+    #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "drag to move pointer\A two fingers pan\A three fingers pinch"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
     .volumeControl { position: relative; display: grid; grid-template-rows: 48px minmax(48px, 1fr) 48px; place-items: center; border-left: 1px solid var(--border); background: var(--surface-raised); transition: background 140ms, box-shadow 140ms; }
     .volumeControl.zooming { background: var(--zoom-surface); box-shadow: none; }
