@@ -127,7 +127,9 @@
     #status { display: flex; align-items: center; gap: 6px; color: #ffb84d; font-size: 12px; }
     #status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
     #status.online { color: var(--success); }
-    #controlSurface { display: grid; grid-template-columns: minmax(0, 1fr) 64px; min-height: 150px; overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); }
+    #controlSurface { display: grid; grid-template-columns: 64px minmax(0, 1fr) 64px; min-height: 150px; overflow: hidden; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); background: var(--surface); }
+    #controlSurface[data-scroll-bar="off"] { grid-template-columns: minmax(0, 1fr) 64px; }
+    #controlSurface[data-scroll-bar="off"] .scrollControl { display: none; }
     #pad { position: relative; min-width: 0; min-height: 150px; border: 0; border-radius: 0; background: var(--pad-gradient); overflow: hidden; }
     #pad::after { white-space: pre; position: absolute; z-index: 1; inset: 0; display: grid; place-content: center; text-align: center; color: var(--pad-hint); font-size: 14px; line-height: 1.7; pointer-events: none; }
     #pad[data-mode="absolute"]::after { content: "Touch to position pointer\A Two fingers scroll and pan"; }
@@ -135,14 +137,19 @@
     #pad[data-mode="absolute"][data-pinch-zoom="on"]::after { content: "Touch to position pointer\A Two fingers pan · three fingers pinch"; }
     #pad[data-mode="relative"][data-pinch-zoom="on"]::after { content: "drag to move pointer\A two fingers pan\A three fingers pinch"; }
     #pad.confirmed { animation: pad-confirmed 360ms ease-out; }
-    .volumeControl { position: relative; display: grid; grid-template-rows: 48px minmax(48px, 1fr) 48px; place-items: center; border-left: 1px solid var(--border); background: var(--surface-raised); transition: background 140ms, box-shadow 140ms; }
+    .volumeControl, .scrollControl { position: relative; display: grid; grid-template-rows: 48px minmax(48px, 1fr) 48px; place-items: center; background: var(--surface-raised); transition: background 140ms, box-shadow 140ms; }
+    .volumeControl { border-left: 1px solid var(--border); }
+    .scrollControl { border-right: 1px solid var(--border); }
     .volumeControl.zooming { background: var(--zoom-surface); box-shadow: none; }
-    .volumeStep { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; background: var(--control); color: var(--control-text); font-size: 22px; }
-    .volumeStep:first-child { grid-row: 1; }
-    .volumeStep:last-child { grid-row: 3; }
+    .volumeStep, .scrollStep { width: 100%; height: 100%; min-height: 0; border: 0; border-radius: 0; background: var(--control); color: var(--control-text); font-size: 22px; }
+    .volumeStep:first-child, .scrollStep:first-child { grid-row: 1; }
+    .volumeStep:last-child, .scrollStep:last-child { grid-row: 3; }
     #volume { grid-row: 2; width: 100%; height: calc(100% - 12px); min-height: 48px; margin: 6px 0; writing-mode: vertical-lr; direction: rtl; accent-color: var(--accent-soft); cursor: ns-resize; touch-action: none; }
     #volume::-webkit-slider-runnable-track { width: 5px; border-radius: 3px; background: var(--control-active); }
     #volume::-webkit-slider-thumb { width: 24px; height: 24px; margin-left: -9.5px; border: 2px solid var(--accent-text); border-radius: 50%; background: var(--accent-soft); box-shadow: 0 1px 5px var(--shadow); }
+    #scrollSwipe { grid-row: 2; display: flex; align-items: center; justify-content: center; align-self: stretch; width: 100%; margin: 0; border: 0; background: var(--surface-raised); color: var(--muted); touch-action: none; cursor: ns-resize; }
+    #scrollSwipe::after { content: "SCROLL"; writing-mode: vertical-rl; text-orientation: mixed; font-size: 10px; font-weight: 750; letter-spacing: .6px; }
+    #scrollSwipe[data-direction] { background: var(--control-active); color: var(--text); }
     #zoomSwipe { display: none; grid-row: 1 / -1; align-self: stretch; width: 100%; margin: 0; border: 0; border-radius: 0; background: var(--zoom-surface); color: var(--success-text); touch-action: none; cursor: ns-resize; }
     #zoomSwipe::after { align-self: center; width: 100%; white-space: pre; text-align: center; font-size: 10px; font-weight: 750; line-height: 2.4; letter-spacing: .6px; }
     #zoomSwipe[data-direction="in"], #zoomSwipe[data-direction="out"] { background: var(--zoom-active); }
@@ -233,7 +240,12 @@
     <button id="keyboardToggle">Keyboard</button>
     <button id="moreToggle" aria-haspopup="dialog">••• More</button>
   </section>
-  <section id="controlSurface" aria-label="Pointer and volume controls">
+  <section id="controlSurface" aria-label="Scroll, pointer, and volume controls">
+    <div class="scrollControl" aria-label="Page scroll controls">
+      <button class="scrollStep" data-scroll-step="up" aria-label="Scroll up">↑</button>
+      <div id="scrollSwipe" role="region" aria-label="Swipe vertically to scroll the page"></div>
+      <button class="scrollStep" data-scroll-step="down" aria-label="Scroll down">↓</button>
+    </div>
     <main id="pad" data-mode="absolute" aria-label="Trackpad"></main>
     <div class="volumeControl">
       <button class="volumeStep" data-media="volume_up" aria-label="Volume up">＋</button>
@@ -308,6 +320,10 @@
             <option value="fast">Fast</option>
           </select>
         </div>
+        <div class="settingRow">
+          <label for="scrollBar">Left scroll bar</label>
+          <label class="switch"><input id="scrollBar" type="checkbox"><span aria-hidden="true"></span></label>
+        </div>
       </section>
       <section class="settingsSection" aria-labelledby="pinchHeading">
         <h3 id="pinchHeading">Pinch zoom</h3>
@@ -332,6 +348,7 @@
     <div id="screenList" class="selectionList"><div class="empty">Loading screens…</div></div>
   </dialog>
   <script>
+    const controlSurface = document.querySelector('#controlSurface');
     const pad = document.querySelector('#pad');
     const status = document.querySelector('#status');
     const keyboard = document.querySelector('#keyboard');
@@ -348,10 +365,12 @@
     const themeColor = document.querySelector('#themeColor');
     const mouseSensitivity = document.querySelector('#mouseSensitivity');
     const panSensitivity = document.querySelector('#panSensitivity');
+    const scrollBar = document.querySelector('#scrollBar');
     const pinchZoom = document.querySelector('#pinchZoom');
     const pinchSensitivity = document.querySelector('#pinchSensitivity');
     const zoomHold = document.querySelector('#zoomHold');
     const zoomSwipe = document.querySelector('#zoomSwipe');
+    const scrollSwipe = document.querySelector('#scrollSwipe');
     const volume = document.querySelector('#volume');
     const volumeControl = document.querySelector('.volumeControl');
     const volumeValue = document.querySelector('#volumeValue');
@@ -364,11 +383,13 @@
     let volumePointerDown = false, suppressVolumeUntilPointerUp = false;
     let scrollFrame = null, scrollDx = 0, scrollDy = 0, scrollLastFrame = 0, scrollLastInput = 0;
     let scrollVelocityX = 0, scrollVelocityY = 0, scrollMomentumFrame = null, scrollMomentumLastFrame = 0;
+    let scrollSwipePointerId = null, scrollSwipeLastY = 0, scrollSwipeFeedbackTimer = null;
     let inputMode = localStorage.getItem('mouslyPointerMode') === 'absolute' ? 'absolute' : 'relative';
     let appearance = ['default', 'light', 'oled'].includes(localStorage.getItem('mouslyAppearance'))
       ? localStorage.getItem('mouslyAppearance') : 'default';
     let mouseSensitivitySetting = validSensitivity(localStorage.getItem('mouslyMouseSensitivity'));
     let panSensitivitySetting = validSensitivity(localStorage.getItem('mouslyPanSensitivity'));
+    let scrollBarEnabled = localStorage.getItem('mouslyScrollBar') !== 'false';
     let pinchZoomEnabled = localStorage.getItem('mouslyPinchZoom') !== 'false';
     let zoomSensitivity = validSensitivity(localStorage.getItem('mouslyZoomSensitivity'));
     const pairingTokenKey = 'mouslyPairingToken';
@@ -540,6 +561,41 @@
         scrollVelocityY = 0;
       }
     }
+    function showScrollSwipeDirection(delta) {
+      scrollSwipe.dataset.direction = delta > 0 ? 'down' : 'up';
+      clearTimeout(scrollSwipeFeedbackTimer);
+      scrollSwipeFeedbackTimer = setTimeout(() => scrollSwipe.removeAttribute('data-direction'), 100);
+    }
+    scrollSwipe.addEventListener('pointerdown', event => {
+      if (scrollSwipePointerId !== null || (event.pointerType === 'mouse' && event.button !== 0)) return;
+      event.preventDefault();
+      beginScrollMotion();
+      scrollSwipePointerId = event.pointerId;
+      scrollSwipeLastY = event.clientY;
+      scrollSwipe.setPointerCapture(event.pointerId);
+    });
+    scrollSwipe.addEventListener('pointermove', event => {
+      if (event.pointerId !== scrollSwipePointerId) return;
+      const dy = event.clientY - scrollSwipeLastY;
+      scrollSwipeLastY = event.clientY;
+      if (dy === 0) return;
+      queueScroll(0, dy);
+      showScrollSwipeDirection(dy);
+    });
+    function endScrollSwipe(event, withMomentum) {
+      if (event.pointerId !== scrollSwipePointerId) return;
+      scrollSwipePointerId = null;
+      finishScrollMotion(withMomentum);
+    }
+    scrollSwipe.addEventListener('pointerup', event => endScrollSwipe(event, true));
+    scrollSwipe.addEventListener('pointercancel', event => endScrollSwipe(event, false));
+    document.querySelectorAll('[data-scroll-step]').forEach(button => button.addEventListener('click', () => {
+      haptic();
+      beginScrollMotion();
+      const dy = button.dataset.scrollStep === 'up' ? -120 : 120;
+      send('scroll', {dx: 0, dy: dy * sensitivityGain(panSensitivitySetting)});
+      showScrollSwipeDirection(dy);
+    }));
     function distanceBetween(points, pair) {
       const [a, b] = pair.map(id => points.get(id));
       return Math.hypot(a.x - b.x, a.y - b.y);
@@ -909,6 +965,8 @@
     });
     mouseSensitivity.value = mouseSensitivitySetting;
     panSensitivity.value = panSensitivitySetting;
+    scrollBar.checked = scrollBarEnabled;
+    controlSurface.dataset.scrollBar = scrollBarEnabled ? 'on' : 'off';
     pinchZoom.checked = pinchZoomEnabled;
     pad.dataset.pinchZoom = pinchZoomEnabled ? 'on' : 'off';
     pinchSensitivity.value = zoomSensitivity;
@@ -919,6 +977,11 @@
     panSensitivity.onchange = () => {
       panSensitivitySetting = validSensitivity(panSensitivity.value);
       localStorage.setItem('mouslyPanSensitivity', panSensitivitySetting);
+    };
+    scrollBar.onchange = () => {
+      scrollBarEnabled = scrollBar.checked;
+      controlSurface.dataset.scrollBar = scrollBarEnabled ? 'on' : 'off';
+      localStorage.setItem('mouslyScrollBar', String(scrollBarEnabled));
     };
     pinchZoom.onchange = () => {
       pinchZoomEnabled = pinchZoom.checked;
